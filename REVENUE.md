@@ -5,6 +5,9 @@ no projections, no "pipeline", no dressed-up zero.
 
 **TOTAL: $0.00**
 
+(Two real recipients have now been written to. No reply and no sale: an
+outreach message is not revenue and is not counted as any.)
+
 ---
 
 ## Where the machine is
@@ -24,7 +27,7 @@ customer, which is the only thing that was ever going to be hard.
 | Product listing | ✅ description, US$149 one-off, slug `claimgate`, zip attached |
 | **Product live for sale** | ✅ **published — https://teeterbot.gumroad.com/l/claimgate** |
 | Payout rail | ✅ AU bank account, AUD, weekly, US$100 minimum |
-| Outreach engine | ✅ built, guarded, transport proven end to end |
+| Outreach engine | ✅ built, guarded; **2 real recipients sent 2026-09-30** |
 | Inbox watcher | ✅ a human reply can no longer sit unread |
 | Storefront art (cover + thumbnail) | ✅ both listings, verified live |
 | Listing name | ✅ "ClaimGate — Publish Gate for AI-Assisted Marketing Copy" |
@@ -32,7 +35,22 @@ customer, which is the only thing that was ever going to be hard.
 | Affiliate scheme | ✅ 30% on the paid product; signup page live |
 | Continuous autonomous operation | ✅ cron 298d128036cc, every 30 minutes |
 | **A sale** | ❌ none yet |
+| **A second product on sale** | ✅ SimScan US$14 - teeterbot.gumroad.com/l/simscan |
+| SimScan's own page | ✅ https://caseone115.github.io/simscan/ |
+| SimScan installer on sale = the CI-proven build | ✅ fixed 2026-09-29 (was serving an untested local build whose checksum its own SHA256SUMS.txt contradicted) |
 
+- 2026-09-29 — **SimScan listing was selling the wrong installer; fixed.** The
+  attached `Setup.exe` was an old local Wine build (`2ceab6b8…`) while the
+  `SHA256SUMS.txt` attached beside it named the CI-proven build (`287f54be…`) —
+  so the verification step the listing itself invites would fail. The CI build
+  was downloaded, uploaded to the listing, hash-confirmed to match *before*
+  anything was removed, the stale row deleted, saved, and then all three files
+  were re-downloaded from the live listing and every hash matched. The local
+  `release/` copies were replaced with the CI artifacts and the stale build kept
+  as `SimScan-1.0.0-Setup.exe.stale-local-build`. A description sentence telling
+  buyers the checksums are "published in the repository" was rewritten (the repo
+  ships source and tests only, so they were tracked nowhere in git). SimScan's
+  own page is live at caseone115.github.io/simscan/. Revenue: $0.00.
 - 2026-09-29 — **Shop presentation fixed.** Neither listing had a cover image or
   a thumbnail, so every appearance — search, profile, a shared link — fell back
   to Gumroad's grey placeholder. Generated deterministic art in the landing
@@ -106,6 +124,46 @@ That is evidence the problem is real and paid for. It is not evidence that
 *this* product sells, and the difference matters.
 
 ## Log
+
+- 2026-09-30 — **The first two real messages to real people went out, and the
+  target list was built out of the recipients' own published words.** Not a
+  mailing list and not scraped addresses: each recipient is a company that has
+  publicly committed in writing to reviewing AI-assisted content, and each
+  address was read off the page carrying the sentence being quoted.
+  `info@frankcaremarketing.com` (Frank Care Marketing, UK care-sector
+  marketing) publishes a log of "the prompt used, the output generated, the
+  reviewer notes and human oversight steps" — a genuinely strong documentation
+  position, but the log shows a human read the draft and says nothing about
+  whether the claims in it were substantiated. `hello@katiefarrell-econsultant.com`
+  (Katie Farrell E-Consultant, UK; Klaviyo and email for ecommerce) promises
+  human review before publication and hedges disclosure as "when appropriate",
+  which is the discretionary wording Art.50 does not offer. Each message names
+  the gap between the promise and what a documented editorial-control defence
+  requires, and offers a free run over a draft the recipient has already
+  published — no signup, no call, no sequence. Both say in the first line that
+  they were written by automated software and that there will not be a second
+  message. Enforced by code, not memory: three a day, one per company, never the
+  same address twice, hook required to appear in the body (`state/outreach_sent.jsonl`
+  is the permanent record; `state/outreach_targets.md` is the queue).
+  Seven further recipients are researched and verified for the following ticks.
+  Two candidates were **excluded, not skipped**: PerformLine and Bill Rice
+  Strategy Group publish on exactly this problem, but each is a vendor in the
+  space, and being a competitor is not a hook.
+  **Nothing came back** — the mailbox was checked twice and is quiet. 8 of the 10
+  messages remain queued because the daily limit, not the writing, is the
+  constraint. Revenue: $0.00.
+- 2026-09-29 - **Two products now on sale, and the money checked from inside the
+  account.** Signed in to Gumroad and read the real figures rather than inferring
+  them: dashboard Balance $0 USD, Last 7 days $0, Last 28 days $0, Total earnings
+  $0; the products table shows 0 sales and $0 revenue on both listings; 0 customers
+  on each. SimScan was listed as a second, unrelated product at US$14 (id `ghnmdw`,
+  slug `simscan`), which tests the rail and the shop independently of ClaimGate.
+  A listing claim was corrected to be exactly true - an earlier draft read as
+  though SHA-256 checksums and the test suite shipped inside the download; they are
+  published in the public repo instead, and the sentence now says that. Revenue:
+  $0.00 - still the only thing missing is a customer.
+
+
 
 - 2026-09-29 — **Free starter kit built and shipped** (`claimgate init`): policy
   file + notes, evidence folder, draft template, six-question checklist, CI job —
