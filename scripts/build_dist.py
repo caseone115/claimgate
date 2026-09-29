@@ -10,6 +10,7 @@ until a buyer hits it.
 """
 from __future__ import annotations
 
+import hashlib
 import subprocess
 import sys
 import tempfile
@@ -43,6 +44,12 @@ INCLUDE = [
 
 TESTS = ["tests/test_claimgate.py", "tests/test_kit.py", "tests/test_outreach.py"]
 
+# Fixed timestamp for every entry, so two builds of the same source produce the
+# same bytes. Without this neither the seller nor anyone auditing the listing can
+# tell whether the file attached to a product is the build it claims to be —
+# every rebuild changes the hash even when nothing changed.
+EPOCH = (2026, 1, 1, 0, 0, 0)
+
 
 def build() -> Path:
     missing = [p for p in INCLUDE if not (ROOT / p).exists()]
@@ -52,8 +59,25 @@ def build() -> Path:
     OUT.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(OUT, "w", zipfile.ZIP_DEFLATED) as z:
         for rel in INCLUDE:
-            z.write(ROOT / rel, f"{NAME}/{rel}")
+            info = zipfile.ZipInfo(f"{NAME}/{rel}", date_time=EPOCH)
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = 0o644 << 16
+            z.writestr(info, (ROOT / rel).read_bytes())
     return OUT
+
+
+def digest(archive: Path) -> str:
+    return hashlib.sha256(archive.read_bytes()).hexdigest()
+
+
+def record(archive: Path, sha: str) -> Path:
+    """Publish the hash next to the archive so a buyer can verify the download."""
+    sums = archive.parent / "SHA256SUMS"
+    line = f"{sha}  {archive.name}\n"
+    if not sums.exists() or sums.read_text() != line:
+        sums.write_text(line)
+    return sums
+
 
 
 def verify(archive: Path) -> None:
@@ -81,7 +105,15 @@ def verify(archive: Path) -> None:
 
 if __name__ == "__main__":
     a = build()
+    first = digest(a)
+    # prove reproducibility rather than claiming it: build twice, compare
+    b = build()
+    second = digest(b)
+    if first != second:
+        raise SystemExit("REFUSING TO SHIP — the archive is not reproducible")
     print(f"built {a} ({a.stat().st_size} bytes)")
+    print(f"sha256 {first}  (reproducible across two builds)")
+    record(a, first)
     print("verifying from inside the archive:")
     verify(a)
     print(f"OK — {a}")
