@@ -183,6 +183,44 @@ def main() -> int:
                 " which installs a different project")
         NOTES.append(label + " checked for the wrong install command")
 
+    # ---- door 6: every live listing is actually PUBLISHED and still priced.
+    # Added 2026-09-30 after an edit accidentally unpublished the second
+    # product. It was off the storefront for a few minutes and NOTHING
+    # noticed: door 1 and door 2 above still read a price off its page,
+    # because Gumroad renders an unpublished product's page to the seller
+    # while hiding it from buyers. A store that is invisible to strangers is
+    # the most expensive failure there is, so it gets its own door.
+    import json as _json
+    import re as _re
+    for label, page_url, want_cents in (("claimgate", URL_CG_PLAIN, 14900),
+                                        ("simscan", URL_SS_PLAIN, 1400),
+                                        ("starter kit", URL_KIT, 0)):
+        try:
+            html = urllib.request.urlopen(page_url, timeout=30).read().decode()
+        except Exception as exc:
+            FAILURES.append(f"{label} listing could not be fetched: {exc}")
+            continue
+        m = _re.search(r'data-page="([^"]+)"', html, _re.S)
+        if not m:
+            FAILURES.append(f"{label} listing has no product payload — cannot read "
+                            f"whether it is published")
+            continue
+        try:
+            from html import unescape as _unesc
+            prod = _json.loads(_unesc(m.group(1)))["props"]["product"]
+        except Exception as exc:
+            FAILURES.append(f"{label} listing payload could not be parsed: {exc}")
+            continue
+        if not prod.get("is_published"):
+            FAILURES.append(f"{label} listing is NOT PUBLISHED — it is off the "
+                            f"storefront and no stranger can buy it ({page_url})")
+        got = prod.get("price_cents")
+        if want_cents is not None and got != want_cents:
+            FAILURES.append(f"{label} listing price is {got} cents, expected "
+                            f"{want_cents} — the price moved")
+        NOTES.append(f"{label}: published={prod.get('is_published')} "
+                     f"price_cents={got}")
+
     print("checkout doors probe")
     for n in NOTES:
         print("  ·", n)
