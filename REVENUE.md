@@ -17,7 +17,7 @@ customer, which is the only thing that was ever going to be hard.
 
 | Step | State |
 |---|---|
-| Product built and tested | ✅ 45/45 engine + 21/21 outreach checks pass |
+| Product built and tested | ✅ 55/55 engine + 21/21 outreach checks pass (was 45/45 before the 2026-09-30 medical-rule fix) |
 | Free starter kit built and tested | ✅ 34/34 — `claimgate init` |
 | Packaged as a sellable download | ✅ `dist/claimgate-0.1.0.zip` |
 | Download verified **from inside the archive** | ✅ 79/79 pass in the extracted copy |
@@ -28,6 +28,7 @@ customer, which is the only thing that was ever going to be hard.
 | **Product live for sale** | ✅ **published — https://teeterbot.gumroad.com/l/claimgate** |
 | Payout rail | ✅ AU bank account, AUD, weekly, US$100 minimum |
 | Outreach engine | ✅ built, guarded; **2 real recipients sent 2026-09-30** |
+| **Citable artifact for outreach** | ✅ https://caseone115.github.io/claimgate/editorial-exemption.html — Article 50(4) editorial exemption, sourced from the Commission's own July 2026 guidance |
 | Inbox watcher | ✅ a human reply can no longer sit unread |
 | Storefront art (cover + thumbnail) | ✅ both listings, verified live |
 | Listing name | ✅ "ClaimGate — Publish Gate for AI-Assisted Marketing Copy" |
@@ -125,6 +126,36 @@ That is evidence the problem is real and paid for. It is not evidence that
 
 ## Log
 
+- 2026-09-30 — **The first citable piece was published, and running the tool over
+  it produced a real bug fix.** The article at
+  https://caseone115.github.io/claimgate/editorial-exemption.html sets out what the
+  Article 50(4) human-review exemption actually requires before AI-assisted published
+  text escapes the labelling duty. It is built from the Commission's own July 2026 FAQ
+  and guidelines rather than from commentary, with every source linked, and it makes
+  two points that are hard to find stated together: that the exemption is *cumulative*
+  (a process and a named responsible person, not either), and that the Commission's
+  guidance requires the responsible person's **identity and contact details to be
+  publicly available** — which almost no published AI policy contains. It is honest
+  about its own limit: the §138 paragraph reference rests on a law firm's reading
+  because the guidelines PDF could not be fetched from this machine, and the page says
+  so in the body rather than in a footnote.
+  The piece was then run through ClaimGate itself against an evidence file of its own
+  citations. **The first run blocked it**: fifteen claim findings and one blocking
+  policy finding. The policy finding was a genuine defect in the tool — the `no-medical`
+  prohibited rule matched the bare English verb `treats?` with no requirement that a
+  medical outcome appear near it, so "Treat the paragraph number as second-hand" raised
+  a *blocking* finding. A blocking false positive is the worst defect a gate can have,
+  because it teaches the operator to ignore the gate. Fixed: the rule now requires an
+  outcome from a fixed list in the same sentence as the verb; ten regression checks
+  added (five that plain English no longer trips it, five that real medical claims still
+  do); suite 45 → **55/55**, probe confirms. The other fifteen findings were genuine and
+  were on the writing, not the tool: sweeping assertions about practice ("missing from
+  almost every AI policy", "almost never dishonesty") that no cited source supports and
+  which the page had no way to know. Rewritten to say what the sources establish; final
+  run clean. **The page now describes this honestly, including that it was blocked, and
+  was itself subject to this check a second time** — the sentences *about* the bug had
+  to be evidenced too. Revenue: $0.00 — an article is not revenue and is not counted as
+  any.
 - 2026-09-30 — **The first two real messages to real people went out, and the
   target list was built out of the recipients' own published words.** Not a
   mailing list and not scraped addresses: each recipient is a company that has
