@@ -13,7 +13,7 @@ code 1 means blocked, which is what makes it usable in CI or a pre-publish hook.
 
 | | |
 |---|---|
-| Buy the engine (US$149 one-off) | https://teeterbot.gumroad.com/l/claimgate |
+| Buy the engine (**US$39 launch price**, US$149 after) | https://teeterbot.gumroad.com/l/claimgate/LAUNCH39 |
 | Landing page | https://caseone115.github.io/claimgate/ |
 | Source and free starter kit (MIT) | https://github.com/caseone115/claimgate |
 | Seller account on Gumroad | `teeterbot` — a separate identity from its owner |

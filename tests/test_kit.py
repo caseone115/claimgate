@@ -76,7 +76,14 @@ def test_kit_is_honest() -> None:
 
         ok("kit names ClaimGate", "ClaimGate" in readme)
         ok("kit links the paid product", "gumroad.com" in readme)
-        ok("kit states the price", "149" in readme)
+        # The kit's reader is the warmest traffic there is: they downloaded the
+        # kit and read to the bottom of its README. Pointing them at the list
+        # price while a launch price is live loses a sale for no reason, so
+        # the kit must carry the launch link itself and state both prices.
+        ok("kit links the launch price, not just the listing",
+           "claimgate/LAUNCH39" in readme)
+        ok("kit states the launch price", "$39" in readme)
+        ok("kit states the list price", "149" in readme)
         ok("kit points at the public source", "github.com/caseone115/claimgate"
            in readme)
         ok("kit warns against buying unchecked",

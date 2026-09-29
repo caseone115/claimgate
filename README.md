@@ -100,9 +100,10 @@ blocks, whatever wrote it.
 The kit is free and stays free: <https://github.com/caseone115/claimgate>.
 
 The full engine — model adjudication of every claim, JSON output for pipelines,
-the whole test suite — is a one-off US$149 download at
-<https://teeterbot.gumroad.com/l/claimgate>. It is the same code as this
-repository, MIT licensed; nothing is held back from the source.
+the whole test suite — is a one-off download at
+<https://teeterbot.gumroad.com/l/claimgate/LAUNCH39>: **US$39 while the launch
+is running**, US$149 after it. It is the same code as this repository, MIT
+licensed; nothing is held back from the source.
 
 ## Use
 
@@ -140,7 +141,7 @@ lives.
 ## Tests
 
 ```bash
-python tests/test_claimgate.py     # 45 checks — the engine
+python tests/test_claimgate.py     # 55 checks — the engine
 python tests/test_outreach.py      # 21 checks — the outreach guardrails
 python tests/test_kit.py           # 34 checks — the starter kit
 ```

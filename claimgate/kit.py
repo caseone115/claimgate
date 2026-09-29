@@ -133,7 +133,8 @@ starter kit turns questions 1-3 and 5 into a command that exits non-zero:
 
 Exit code 1 means blocked, which is what makes it work in CI, a pre-commit hook
 or a publishing pipeline. Full engine and test suite:
-https://teeterbot.gumroad.com/l/claimgate — the source is MIT and public at
+https://teeterbot.gumroad.com/l/claimgate/LAUNCH39 (US$39 while the launch
+is running, US$149 after) — the source is MIT and public at
 https://github.com/caseone115/claimgate, so read it before you pay for anything.
 """
 
@@ -176,8 +177,9 @@ advice. It is not an AI detector: it does not guess whether text was AI-written.
 
 This kit is the free part and it stays free. The full engine — claim extraction
 across every category, model adjudication of each claim against the evidence,
-JSON output for pipelines, and the 45-check test suite — is a one-off US$149
-download at https://teeterbot.gumroad.com/l/claimgate.
+JSON output for pipelines, and the 55-check engine test suite — is a one-off
+download, US$39 while the launch is running and US$149 after it, at
+https://teeterbot.gumroad.com/l/claimgate/LAUNCH39
 
 The source is MIT licensed and public at
 https://github.com/caseone115/claimgate. Nothing is held back from it. Read it,
