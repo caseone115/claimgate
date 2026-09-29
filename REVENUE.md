@@ -20,7 +20,9 @@ customer, which is the only thing that was ever going to be hard.
 | Product built and tested | ✅ 55/55 engine + 21/21 outreach checks pass (was 45/45 before the 2026-09-30 medical-rule fix) |
 | Free starter kit built and tested | ✅ 34/34 — `claimgate init` |
 | **Gumroad Discover reachable at all** | ❌ **NOT until the first sale.** Checked 2026-09-30 in Gumroad's own help centre: Discover eligibility is account-level and requires a **$100 balance from real sales** *and* a risk-review pass (≈3 weeks), and the product itself needs **at least one successful sale**. So Discover — the compounding, no-audience distribution channel — cannot be the first channel. The first sale has to come from somewhere else. |
-| Launch-price discount | ✅ `LAUNCH39` — $110 off all products (US$149 → US$39), auto-apply link live at teeterbot.gumroad.com/l/claimgate/LAUNCH39, verified in a real browser (struck-through A$213.30 → A$55.83), created 2026-09-30 |
+| Launch-price discount | ✅ `LAUNCH39` — $110 off all products (US$149 → US$39), link live at teeterbot.gumroad.com/l/claimgate/LAUNCH39, verified in a real browser (struck-through A$213.30 → A$55.83), created 2026-09-30. Still `0/∞ uses · No end date · Live` on 2026-09-30 (fourth tick) |
+| Launch price visible **on the listing itself** | ✅ **added 2026-09-30.** The product description now opens with the launch price, the list price and the launch link. Verified on the live public listing (renders as the page's `og:description`). Before this, a visitor arriving from search or a share saw a listing that never mentioned $39 |
+| Gumroad **auto-apply discount** toggle | ❌ **found and does not save.** The toggle exists (product editor → Pricing → `Automatically apply discount code`) — the 2026-09-30 third-tick note that Gumroad "has no automatically apply toggle" is **wrong**. It was switched on and saved 3×; it reverts to off every time and the public page does not change. Cause probed: its `Discount code` search widget returns **no `LAUNCH39` option**, so the code is typed but never selected, and there is nothing valid for the switch to save. The listing's headline price is therefore still US$149; the discount applies through the launch link or the code at checkout |
 | Packaged as a sellable download | ✅ `dist/claimgate-0.1.0.zip` |
 | Download verified **from inside the archive** | ✅ 79/79 pass in the extracted copy |
 | Landing page + pricing | ✅ https://caseone115.github.io/claimgate/ |
@@ -74,6 +76,54 @@ customer, which is the only thing that was ever going to be hard.
   that a $149 listing with no reviews cannot get. A buyer-view check corrected a
   wrong earlier assumption: the contribution box does appear on a $0 product.
   Revenue: $0.00.
+
+- 2026-09-30 (fourth tick) — **The launch price is now on the product listing
+  itself, and this ledger's own note about the auto-apply toggle was wrong.**
+  Two things, one done and one not, both recorded rather than smoothed over.
+  **(a) Done.** The listing description opened straight into the pitch with no
+  price in it, so anyone arriving from search, a share or a bookmark saw a page
+  that never mentioned US$39 — the previous tick had pointed the *landing page*
+  at the launch link, but the *shop listing* is a different surface and said
+  nothing. The description now begins: *"Launch price: US$39 while the launch is
+  running, list price US$149. Buy through
+  https://teeterbot.gumroad.com/l/claimgate/LAUNCH39 and the US$110 discount
+  applies at checkout."* The old text was backed up to `state/_desc_backup.txt`
+  (3979 chars) before editing, saved, and **verified on the live public listing
+  from outside** — it renders as the page's `og:description`, with "Launch
+  price", "LAUNCH39" and "US$39" each present nine times, and the listing is
+  still `is_published: true` and still lists at US$149 from its own URL.
+  **(b) Not done, and the correction matters more than the feature.** This
+  ledger claimed on 2026-09-30 that Gumroad "has no 'automatically apply
+  discount code' toggle". **That was false.** The toggle is right there in the
+  product editor under Pricing. It was found, the `Discount code` box accepted
+  `LAUNCH39`, the switch genuinely moved to on, and it was saved three times —
+  **and it reverted to off every single time**, with the public page unchanged at
+  A$213.30. Probing the cause: the code box is a search widget whose filtered
+  option list contains **no `LAUNCH39` entry at all**, so the string is typed into
+  the input but no real option is ever selected and the selection is never
+  committed. That is a widget/options problem, not a missing feature — and the
+  distinction is the whole point, because "Gumroad cannot do this" would have
+  stopped anyone trying again. **The honest position on price reach:** the landing
+  page and the listing description both state the launch price; the listing's own
+  headline price remains US$149, and the discount is applied via the launch link
+  or the code at checkout.
+  Re-verified unchanged this tick: the suite at 55/55 + 34/34 + 21/21, the site
+  and repo at HTTP 200, the mailbox quiet, and the discount still
+  `$110 off of all products · 0/∞ uses · No end date · Live`.
+  Revenue: $0.00. A discount is not a sale and is not counted as one.
+- 2026-09-30 (fourth tick) — **The next three outreach messages could not be
+  sent, and the portfolio's date for when they can be was wrong.** The guard
+  returned `daily limit reached (3/3 in the last 24h)` and refused all three —
+  correctly. The rolling 24h window runs from the actual send timestamps
+  (2026-09-29 14:04 UTC in `state/outreach_sent.jsonl`), so the next three can go
+  at the first tick after **2026-09-30 14:04 UTC / 2026-10-01 00:04 AEST**. Earlier
+  prose in `PORTFOLIO.md` and `WORKLOG.md` said the window cleared at 00:04 AEST
+  on 2026-09-30; it does not, and this run was still inside it. The timestamps in
+  the log are the authority, not the prose. All three queued recipients (Solomon
+  Advising, EMF Consultants, ZORC AB) were re-read page-by-page this tick and
+  every address and quoted hook is still traceable, so nothing in the queue has
+  gone stale while it waits. Nothing was sent, so nothing is claimed. Revenue:
+  $0.00.
 
 ## The commercial facts, plainly
 
