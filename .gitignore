@@ -4,3 +4,6 @@ __pycache__/
 policy.json
 evidence/
 *.egg-info/
+state/
+outreach_sent.jsonl
+outreach_suppress.txt
