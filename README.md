@@ -83,13 +83,31 @@ No dependencies. Python 3.9+.
 pip install claimgate        # or: pip install -e . from a checkout
 ```
 
-A packaged, ready-to-run download with the test suite is also sold at
-<https://teeterbot.gumroad.com/l/claimgate> — the source here is the same code,
-MIT licensed, so nothing is held back from this repository.
+## Start here: the free starter kit
+
+```bash
+claimgate init my-project && cd my-project
+claimgate check DRAFT-template.md --evidence evidence/ --policy policy.json --no-model
+```
+
+That writes a policy file you can edit, an evidence folder, a blank draft
+template, a six-question pre-publish checklist (including the AI-disclosure
+section) and a GitHub Actions job that gates every pull request. `--no-model`
+needs no API key and no network: it runs the deterministic checks, and it does
+catch inventing — a figure that appears in the draft and not in your evidence
+blocks, whatever wrote it.
+
+The kit is free and stays free: <https://github.com/caseone115/claimgate>.
+
+The full engine — model adjudication of every claim, JSON output for pipelines,
+the whole test suite — is a one-off US$149 download at
+<https://teeterbot.gumroad.com/l/claimgate>. It is the same code as this
+repository, MIT licensed; nothing is held back from the source.
 
 ## Use
 
 ```bash
+claimgate init my-project                  # the free starter kit
 claimgate init-policy policy.json          # a starter policy to edit
 claimgate claims draft.md                  # just list the claims
 claimgate check draft.md --evidence ./evidence/
@@ -122,13 +140,17 @@ lives.
 ## Tests
 
 ```bash
-python tests/test_claimgate.py     # 45 checks
+python tests/test_claimgate.py     # 45 checks — the engine
+python tests/test_outreach.py      # 21 checks — the outreach guardrails
+python tests/test_kit.py           # 34 checks — the starter kit
 ```
 
 The suite is written against the product's promises, not its implementation:
 that no claim is invented, that a number absent from the evidence is never
 reported as supported, that anything uncheckable blocks, and that the same
-input always gives the same answer.
+input always gives the same answer. `tests/test_kit.py` also runs the shipped
+README through the shipped policy, because a claim-checking product whose own
+front page carries a prohibited claim is the worst demonstration there is.
 
 ## Licence
 

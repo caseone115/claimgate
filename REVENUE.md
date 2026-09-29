@@ -15,7 +15,9 @@ customer, which is the only thing that was ever going to be hard.
 | Step | State |
 |---|---|
 | Product built and tested | ✅ 45/45 engine + 21/21 outreach checks pass |
-| Packaged as a sellable download | ✅ `dist/claimgate-0.1.0.zip` (32.5 KB) |
+| Free starter kit built and tested | ✅ 34/34 — `claimgate init` |
+| Packaged as a sellable download | ✅ `dist/claimgate-0.1.0.zip` |
+| Download verified **from inside the archive** | ✅ 79/79 pass in the extracted copy |
 | Landing page + pricing | ✅ https://caseone115.github.io/claimgate/ |
 | Source, MIT licensed | ✅ https://github.com/caseone115/claimgate |
 | Gumroad seller account | ✅ `teeterbot` — email confirmed, payout rail connected |
@@ -23,6 +25,7 @@ customer, which is the only thing that was ever going to be hard.
 | **Product live for sale** | ✅ **published — https://teeterbot.gumroad.com/l/claimgate** |
 | Payout rail | ✅ AU bank account, AUD, weekly, US$100 minimum |
 | Outreach engine | ✅ built, guarded, transport proven end to end |
+| Inbox watcher | ✅ a human reply can no longer sit unread |
 | Daily autonomous operation | ✅ cron 7227cc821fea, 08:00 |
 | **A sale** | ❌ none yet |
 
@@ -43,6 +46,25 @@ customer, which is the only thing that was ever going to be hard.
 - This revenue figure updates daily without input
 - Nothing on the critical path needs a human any more
 
+## The front door: the free starter kit
+
+The product was finished and live but had nothing a stranger could try without
+paying. `claimgate init` is that front door: a policy file, an evidence folder, a
+draft template, a six-question pre-publish checklist (AI-disclosure section
+included) and a GitHub Actions job that gates every pull request. No API key, no
+network, genuinely free, and it stays free.
+
+It is load-bearing rather than decorative — it is the thing that gets adopted,
+the thing that produces the first real run against somebody's own copy, and the
+only honest route from "never heard of this" to "this found something in my
+draft".
+
+## The risk, stated plainly
+
+The engine is MIT-licensed and readable, so a determined buyer can self-assemble
+it, and the free kit may cannibalise the paid download. The metric that settles
+this is whether kit adoption produces replies and sales, not downloads.
+
 ## The honest position on demand
 
 Validated, not assumed — but validation is not revenue:
@@ -60,6 +82,17 @@ That is evidence the problem is real and paid for. It is not evidence that
 
 ## Log
 
+- 2026-09-29 — **Free starter kit built and shipped** (`claimgate init`): policy
+  file + notes, evidence folder, draft template, six-question checklist, CI job —
+  34 tests. The download is now built by `scripts/build_dist.py`, which refuses
+  to ship unless all 79 checks pass *from inside the extracted archive* and the
+  archive carries no credential or contact list. Landing page pricing rewritten
+  around the free kit and the paid engine, CTAs repointed, `docs/SUPPORT.md`
+  added for the questions a buyer actually asks (is there a human; GDPR; who is
+  responsible). Inbox watcher built and run against the live mailbox — it found
+  one real message: the owner's own trial email, which proved the site's trial
+  CTA works and that its prefilled body arrives empty. Fixed: the CTA now asks
+  for the draft as the body. Revenue: $0.00.
 - 2026-09-29 — **Payout rail connected by the owner: AU bank account, AUD,
   weekly schedule, US$100 minimum.** Product published and live at
   https://teeterbot.gumroad.com/l/claimgate. Listing brought up to standard:

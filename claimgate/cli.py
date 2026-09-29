@@ -149,6 +149,27 @@ def cmd_init_policy(args) -> int:
     return 0
 
 
+def cmd_init_kit(args) -> int:
+    from .kit import build
+    try:
+        written = build(Path(args.path), force=args.force)
+    except FileExistsError as exc:
+        print(exc)
+        return 1
+    root = Path(args.path)
+    print(f"{GRN}Starter kit written to {root}{RST}\n")
+    for p in written:
+        print(f"  {p.relative_to(root)}")
+    print(f"\nNext:\n"
+          f"  cd {root}\n"
+          f"  pip install claimgate\n"
+          f"  claimgate check DRAFT-template.md --evidence evidence/ "
+          f"--policy policy.json --no-model\n")
+    print(f"{DIM}--no-model needs no API key and no network. The run exits 1 "
+          f"when a claim in the draft cannot be substantiated.{RST}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         prog="claimgate",
@@ -177,6 +198,12 @@ def main(argv: list[str] | None = None) -> int:
     i.add_argument("path", nargs="?", default="policy.json")
     i.add_argument("--force", action="store_true")
     i.set_defaults(func=cmd_init_policy)
+
+    k = sub.add_parser("init", help="write the free starter kit (policy, "
+                       "evidence folder, checklist, CI job)")
+    k.add_argument("path", nargs="?", default=".")
+    k.add_argument("--force", action="store_true")
+    k.set_defaults(func=cmd_init_kit)
 
     args = ap.parse_args(argv)
     return args.func(args)

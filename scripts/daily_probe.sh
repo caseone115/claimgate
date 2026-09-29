@@ -16,6 +16,8 @@ cd "$ROOT" 2>/dev/null || { echo "STATE: missing — $ROOT does not exist"; exit
 
 REPO="caseone115/claimgate"
 SITE="https://caseone115.github.io/claimgate/"
+BUY="https://teeterbot.gumroad.com/l/claimgate"
+INBOX="$ROOT/state/inbox.jsonl"
 
 # --- 1. product reachability
 site_code="$(curl -s -o /dev/null -w '%{http_code}' -L "$SITE" 2>/dev/null)"
@@ -24,11 +26,14 @@ echo "site:$site_code repo:$repo_code"
 
 # --- 2. tests
 if [ -x ".venv/bin/python" ]; then PY=".venv/bin/python"; else PY="python3"; fi
-test_out="$($PY tests/test_claimgate.py 2>&1 | tail -1)"
-case "$test_out" in
-  *"behaved as intended"*) echo "tests: $test_out" ;;
-  *) echo "tests: FAILED — $test_out" ;;
-esac
+tests_ok=1
+for t in tests/test_claimgate.py tests/test_outreach.py tests/test_kit.py; do
+  test_out="$($PY "$t" 2>&1 | tail -1)"
+  case "$test_out" in
+    *"behaved as intended"*) echo "tests[$(basename "$t")]: $test_out" ;;
+    *) echo "tests[$(basename "$t")]: FAILED — $test_out"; tests_ok=0 ;;
+  esac
+done
 
 # --- 3. money. The only number that matters, reported without decoration.
 rev_file="$ROOT/REVENUE.md"
@@ -39,7 +44,17 @@ else
   echo "revenue: TOTAL: \$0.00  (no ledger)"
 fi
 
-# --- 4. what exists so far
+# --- 4. anything a human sent us. The buy page is live, so a reply is the most
+# valuable signal there is and it must not sit unread.
+if [ -f "$ROOT/claimgate/inbox.py" ]; then
+  echo "inbox: $($PY -m claimgate.inbox --days 14 2>&1 | tail -1)"
+elif [ -f "$INBOX" ]; then
+  echo "inbox: $(wc -l < "$INBOX" | tr -d ' ') recorded"
+else
+  echo "inbox: no watcher and nothing recorded"
+fi
+
+# --- 5. surfaces
 echo "outreach: $(python3 claimgate/outreach.py 2>/dev/null | head -1 || echo 'outreach: unavailable')"
-echo "surfaces: site, github repo, cli, tests"
+echo "surfaces: site, github repo, cli, tests, gumroad, free starter kit"
 echo "STATUS: ok"
