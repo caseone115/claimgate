@@ -159,6 +159,30 @@ def test_policy() -> None:
     ids = {x.rule_id for x in f}
     ok("medical claim blocks", "no-medical" in ids, str(ids))
 
+    # ---- regression: the medical rule must catch outcomes, not the verb ----
+    # A bare \btreats?\b match fired on plain English and produced a BLOCKING
+    # false positive on a sentence about treating a figure as indicative. A
+    # blocking false positive is the most expensive kind of bug this tool can
+    # have, because it trains the operator to distrust the gate.
+    for phrase in ("Treat the paragraph number as second-hand.",
+                   "Our team treats each draft the same way.",
+                   "Treat this as indicative of the approach.",
+                   "The editor treats the claim with caution.",
+                   "We prevent unsubstantiated claims from publishing."):
+        ids = {x.rule_id for x in check_policy(phrase, p)}
+        ok(f"no false medical block: {phrase[:38]!r}",
+           "no-medical" not in ids, str(ids))
+
+    # ...and must still catch a real medical outcome claim.
+    for phrase in ("This drug treats diabetes.",
+                   "Our blend cures eczema.",
+                   "The supplement prevents illness.",
+                   "It is clinically proven to reduce inflammation.",
+                   "This treats chronic pain in adults."):
+        ids = {x.rule_id for x in check_policy(phrase, p)}
+        ok(f"medical outcome still blocks: {phrase[:38]!r}",
+           "no-medical" in ids, str(ids))
+
 
 def test_disclosure() -> None:
     print("\n=== 6. AI disclosure (EU AI Act Art. 50) ===\n")

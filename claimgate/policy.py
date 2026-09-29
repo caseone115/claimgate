@@ -48,8 +48,19 @@ DEFAULT_RULES: list[Rule] = [
          "absolute guarantees are unenforceable and are treated as misleading "
          "advertising", "high",
          "state what the product does and the conditions under which it does it"),
-    Rule("no-medical", r"\b(?:cures?|treats?|prevents? (?:disease|illness|"
-         r"cancer)|diagnoses?|clinically proven to)\b", "prohibited",
+    # The medical rule requires a medical *outcome* near the verb. A bare
+    # \btreats?\b match fires on ordinary English ("treat the figure as
+    # indicative", "treats each draft the same"), which is a false positive on
+    # exactly the sort of compliance prose this tool is aimed at — and a
+    # false positive on a blocking rule is worse than a missed one, because it
+    # teaches the operator to ignore the gate. The outcome must also fall
+    # inside the same sentence (no "." between verb and outcome).
+    Rule("no-medical", r"\b(?:cures?|treats?|prevents?|diagnoses?)\b"
+         r"(?=[^.]{0,60}\b(?:disease|illness|cancer|condition|disorder|"
+         r"infection|symptoms?|pain|inflammation|depression|anxiety|adhd|"
+         r"diabetes|arthritis|asthma|acne|eczema|migraine|insomnia|injury|"
+         r"wound|allergy|obesity)\b)"
+         r"|\bclinically proven to\b", "prohibited",
          "medical efficacy claims require regulatory authorisation", "high",
          "describe the product's function, not a medical outcome"),
     Rule("no-financial-advice", r"\b(?:guaranteed returns?|risk[- ]free "
