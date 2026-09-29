@@ -15,6 +15,22 @@ it checks the shop rather than the code.
 
 Exit 0 = the doors work. Exit 1 = something regressed, with the detail printed.
 
+Assertion style: prices are compared as RATIOS, never as hard-coded cents. The
+shop renders in the visitor's currency, so the same US$39 checkout shows a
+different AUD figure whenever FX moves. The first version of this script
+hard-coded A$55.89 and raised a false regression on 2026-09-30 when the list
+price moved A$213.51 -> A$213.81 and the launch price to A$55.96: the discount
+was correct, the assertion was not. A false alarm on a standing check is
+expensive — it teaches the reader to ignore the check.
+
+Browser handling: all launches go through `state/browser.py`, which reaps
+this project's orphaned headless Chrome (matched by the exact
+--user-data-dir, never the user's own browser) and clears stale profile
+locks first. On 2026-09-30 this probe worked exactly once and then every
+later browser run failed, because agent-browser leaves Chrome running and
+the orphan holds the profile; the cause was invisible to the probe's own
+exit code, which reported only the price regression below.
+
 Note on parsing: agent-browser returns its eval result as an already-quoted JSON
 string, so the payload is escaped twice and substring-matching on it produced two
 false alarms on the first run of this script. It now asks for plain
@@ -50,11 +66,14 @@ def _unquote(raw: str) -> str:
 
 
 def ab(*args, profile: str, session: str, timeout: int = 300) -> str:
-    cmd = ["node", AB, "--profile", profile, "--session", session, "--args", FLAGS]
-    cmd += [str(a) for a in args]
-    p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout, cwd=ROOT)
-    out = (p.stdout or "") + (p.stderr or "")
-    return "\n".join(ln for ln in out.splitlines() if not ln.startswith("⚠"))
+    """Delegate to the shared driver: it reaps our orphaned Chrome and clears
+    stale profile locks before every launch. The first version of this script
+    cleared locks only, which did not help — the surviving Chrome processes were
+    what held the profile, and they made every run after the first one die."""
+    import sys as _sys
+    _sys.path.insert(0, "/home/john-douglas/claimgate/scripts")
+    import browser as _b
+    return _b.ab(*args, profile=profile, session=session, timeout=timeout)
 
 
 # Plain text out, no nested JSON: <struck prices> || <every A$ amount in the body>
@@ -87,9 +106,26 @@ def main() -> int:
     if not struck:
         FAILURES.append("claimgate/LAUNCH39 no longer shows a struck-through list price "
                         f"— the launch link is not discounting — prices seen {leaves}")
-    elif not any(l.endswith("55.89") or l.endswith("55.83") for l in leaves):
-        FAILURES.append("claimgate/LAUNCH39 shows a struck price but not the ~A$55.9 launch "
-                        f"price — prices seen {leaves}")
+    else:
+        # Assert the RATIO, not the cents. The price renders in the visitor's
+        # currency, so FX drift moves the AUD figure without anything being
+        # wrong — hard-coded cents produced a false "regression" on 2026-09-30
+        # when the list went A$213.51 -> A$213.81. US$39 of US$149 is 39/149.
+        def _amt(s: str) -> float:
+            return float(s.replace("A$", "").replace(",", "").replace(" ", ""))
+        try:
+            list_price = _amt(struck[0])
+            target = list_price * 39.0 / 149.0
+            tol = max(0.75, target * 0.02)
+            ok = any(abs(_amt(l) - target) <= tol for l in leaves)
+            detail = (f"list {list_price:.2f} -> expected ~{target:.2f} "
+                      f"(39/149, tol +/-{tol:.2f}); prices seen {leaves}")
+        except Exception as e:
+            ok = False
+            detail = f"could not parse prices ({e}); struck={struck} prices={leaves}"
+        if not ok:
+            FAILURES.append("claimgate/LAUNCH39 shows a struck price but not the 39/149 "
+                            f"launch price — {detail}")
 
     # ---- door 2: the discount must NOT reach the second product (this was the giveaway)
     ss_struck, ss_leaves = probe(URL_SS_LAUNCH)
@@ -135,10 +171,27 @@ def main() -> int:
         for f in FAILURES:
             print("  ✗", f)
         return 1
-    print("\nOK: the launch link discounts the flagship to ~A$55.9, does not reach the "
-          "second product, and the checkout offers the code field.")
+    print("\nOK: the launch link discounts the flagship to 39/149 of its list price "
+          "(US$39 of US$149), does not reach the second product, and the checkout "
+          "offers the code field.")
     return 0
 
 
+def _cleanup() -> None:
+    """Kill our own Chrome so nothing is left holding the profile between ticks."""
+    try:
+        import sys as _sys
+        _sys.path.insert(0, "/home/john-douglas/claimgate/scripts")
+        import browser as _b
+        for prof in (_b.GUMROAD_PROFILE, _b.BUYER_PROFILE):
+            killed = _b.reap_orphans(prof)
+            if killed:
+                print(f"  · cleaned up {len(killed)} browser process(es) for {prof.rsplit('/', 1)[-1]}")
+    except Exception:
+        pass
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    _rc = main()
+    _cleanup()
+    sys.exit(_rc)
