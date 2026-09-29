@@ -37,8 +37,11 @@ customer, which is the only thing that was ever going to be hard.
 | Product listing | ✅ description, US$149 one-off, slug `claimgate`, zip attached |
 | **Product live for sale** | ✅ **published — https://teeterbot.gumroad.com/l/claimgate** |
 | Payout rail | ✅ AU bank account, AUD, weekly, US$100 minimum |
-| Outreach engine | ✅ built, guarded; **2 real recipients sent 2026-09-30** |
+| Outreach engine | ✅ built, guarded; **2 real recipients sent 2026-09-30**, 8 queued. Cap measured off the guard 2026-09-30 (seventh tick): 3/3 in window now; **one** slot opens 2026-09-30 02:00 UTC / 12:00 AEST (the self-test transport row drops out), the other two at 15:00 UTC / 2026-10-01 01:00 AEST. Hour-granular sample — treat as "first tick after" |
 | **Citable artifact for outreach** | ✅ https://caseone115.github.io/claimgate/editorial-exemption.html — Article 50(4) editorial exemption, sourced from the Commission's own July 2026 guidance |
+| **Standing shop probe** | ✅ **fixed 2026-09-30 (seventh tick).** It had been crying wolf: it asserted the discounted price as the exact cents seen on the day it was written (A$55.89 / A$55.83), so when FX moved the list price A$213.51 → A$213.81 the launch price read A$55.96 and a working 74% discount was reported as a regression. It now asserts the **ratio** (39/149), which is currency-blind, and was proved against the real page plus four deliberately broken cases it still catches |
+| **Browser automation (was silently dead)** | ✅ **fixed 2026-09-30 (seventh tick).** Every browser run was dying with `Failed to create SingletonLock: File exists`. The cause was not the lock: **48 orphaned headless Chrome processes** from earlier runs were still alive on our two profile dirs and holding them — agent-browser leaves Chrome running on exit, so the run *after* any browser run failed. The shop was unreachable to every automated check while `daily_probe.sh` still printed `STATUS: ok`. `scripts/browser.py` now reaps our own orphans (matched by exact `--user-data-dir`; proved not to match a profile we do not own), clears stale locks, reaps once per process, and the probe cleans up after itself. Verified by two consecutive green runs — the thing that used to be impossible |
+| **Traffic actually observed** | 📊 **39 views in the last 30 days, 0 sales**, read from inside the account 2026-09-30 (seventh tick) now that browsing works again. 3 views placed in the United States, the rest unplaced. Balance $0, last 7 days $0, last 28 days $0, total earnings $0 on all three listings; the dashboard's own "Make your first sale" step is unticked. This is a sample that says nobody has been given a reason to buy yet — not that the price is wrong |
 | Inbox watcher | ✅ a human reply can no longer sit unread |
 | Storefront art (cover + thumbnail) | ✅ both listings, verified live |
 | Listing name | ✅ "ClaimGate — Publish Gate for AI-Assisted Marketing Copy" |
@@ -184,6 +187,46 @@ That is evidence the problem is real and paid for. It is not evidence that
 *this* product sells, and the difference matters.
 
 ## Log
+
+- 2026-09-30 (seventh tick) — **The shop's own standing check was wrong in two
+  ways, and the second was hiding a total outage of every browser-based check.**
+  It started with running the queue's own probe instead of trusting it, and the
+  probe failed (exit 1) claiming three doors were broken.
+  **(a) It was crying wolf.** The probe asserted the launch price as the exact
+  cents from the day it was written (`A$55.89` / `A$55.83`). Gumroad renders in
+  the visitor's currency, so when the list price moved `A$213.51 → A$213.81` the
+  launch price read `A$55.96` and a working 74% discount was reported as a
+  regression — for a check whose whole job is to be believed. It now asserts the
+  **ratio**, `39/149`, which is the real invariant and currency-blind. Proved
+  both ways: it passes every real render, including today's, and still fails four
+  deliberately broken ones — discount not applying, product gone free, wrong
+  coupon, no struck price at all. A check that cannot fail is not a check.
+  **(b) The real fault, and it was not the one being reported.** Every browser run
+  was dying with `Failed to create SingletonLock: File exists` (Chrome exit 21).
+  The cause was **not** a stale lock: **48 orphaned headless Chrome processes**
+  were still alive on our two profile dirs and holding them. agent-browser leaves
+  Chrome running when a script exits, so **the run after any browser run failed**.
+  That means the shop had become unreachable to every automated check while
+  `daily_probe.sh` went on reporting `STATUS: ok`, because it never starts a
+  browser — a real outage invisible from every health surface we had.
+  `scripts/browser.py` is now the single self-healing driver: reaps our own
+  orphans (matched by the exact `--user-data-dir`, **proved not to match a profile
+  we do not own**), clears stale locks, reaps **once per process**, and the probe
+  cleans up after itself so they cannot re-accumulate. Two mistakes of mine were
+  caught by running it rather than reasoning about it: reaping on *every* call
+  killed the browser between `open` and `eval` and produced three *false* breaks
+  on a shop that was fine, and the helper was first written into gitignored
+  `state/`, where the tracked probe importing it would break on a fresh clone.
+  **Verified: two consecutive green runs** (`0` Chrome left running afterwards),
+  `daily_probe.sh` still `55/55 + 36/36 + 21/21`, site 200, repo 200.
+  **(c) With browsing repaired, the real numbers were read from inside the
+  account** instead of guessed: **39 views, 0 sales** on all three listings;
+  Balance $0, last 7 days $0, last 28 days $0, total earnings $0; 3 views from the
+  United States, the rest unplaced; the dashboard's own "Make your first sale"
+  step unticked. The inbox is quiet — the only person-mail on record is still the
+  owner's own 2026-09-29 trial message, deliberately not auto-answered.
+  **Revenue: $0.00 — a fixed check is not a sale, and 39 views is not demand.**
+  No sale, no reply, no traffic change attributed to anything.
 
 - 2026-09-30 — **The first citable piece was published, and running the tool over
   it produced a real bug fix.** The article at
