@@ -35,9 +35,12 @@ Usage:
     python3 claimgate/inbox.py --show-seen      # reprint already-recorded mail
     python3 claimgate/inbox.py --no-write       # report without appending
     python3 claimgate/inbox.py --strict-exit    # exit 3 when new human mail
+    python3 claimgate/inbox.py --pending        # exit 4 while anyone who wrote
+                                                # us is still unanswered
 
 Exit codes: 0 = scan succeeded (quiet or new mail), 1 = scan did not happen
-(credentials, network, IMAP), 3 = --strict-exit and new human mail was found.
+(credentials, network, IMAP), 3 = --strict-exit and new human mail was found,
+4 = --pending and a person is waiting for an answer.
 """
 from __future__ import annotations
 
@@ -243,6 +246,38 @@ def _load_sent() -> tuple[set[str], set[str]]:
     return subjects, domains
 
 
+def _load_sent_recipients() -> list[tuple[str, str]]:
+    """(recipient, ISO date) for everything we have sent, newest first.
+
+    Used to answer the question that actually matters: has this person been
+    answered yet? A reply that is logged but never answered is still a missed
+    reply, and logging it must not be mistaken for handling it.
+    """
+    out: list[tuple[str, str]] = []
+    if not SENT_LOG.exists():
+        return out
+    for line in SENT_LOG.read_text().splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        addr = _addr(row.get("to") or "")
+        when = (row.get("at") or "")[:10]
+        if addr and when:
+            out.append((addr, when))
+    out.sort(reverse=True)
+    return out
+
+
+def _unanswered(row: dict, sent: list[tuple[str, str]]) -> bool:
+    """True if nobody has written back to this sender since they wrote to us."""
+    return not any(addr == row["from"] and when >= row["received"]
+                   for addr, when in sent)
+
+
 def _key(msg, from_addr: str, subject: str, date: str,
          uid: str = "", folder: str = "") -> str:
     """A stable identity for one mailbox message.
@@ -386,6 +421,13 @@ def _line(row: dict) -> str:
             f'from={row["from"]}')
 
 
+def _pending_rows(days: int, folder: str) -> list[dict]:
+    """Everything a person wrote that nobody has answered yet, newest last."""
+    rows = [r for r in scan(days=days, folder=folder) if not r["machine"]]
+    sent = _load_sent_recipients()
+    return [r for r in rows if _unanswered(r, sent)]
+
+
 def _append(rows: list[dict]) -> None:
     STATE.mkdir(parents=True, exist_ok=True)
     with INBOX_LOG.open("a") as fh:
@@ -405,9 +447,29 @@ def main(argv: list[str] | None = None) -> int:
                     help="report only; do not append to state/inbox.jsonl")
     ap.add_argument("--show-seen", action="store_true",
                     help="also reprint messages already recorded")
+    ap.add_argument("--pending", action="store_true",
+                    help="report every person who wrote and has not been "
+                         "answered yet, ignoring what is already logged; this "
+                         "is the mode that makes an unanswered reply visible "
+                         "on every run (exit 4)")
     ap.add_argument("--strict-exit", action="store_true",
                     help="exit 3 if new human mail was found")
     args = ap.parse_args(argv)
+
+    if args.pending:
+        try:
+            pend = _pending_rows(days=args.days, folder=args.folder)
+        except Exception as exc:
+            print(f"error: mailbox not checked — {type(exc).__name__}: {exc}")
+            return 1
+        if not pend:
+            print("quiet")
+            return 0
+        for row in pend:
+            print(_line(row))
+        print(f'total: {len(pend)} person-mail awaiting an answer in last '
+              f'{args.days}d')
+        return 4
 
     try:
         found = scan(days=args.days, folder=args.folder)
