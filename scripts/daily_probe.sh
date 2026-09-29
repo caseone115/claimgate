@@ -39,5 +39,6 @@ else
 fi
 
 # --- 4. what exists so far
+echo "outreach: $(python3 claimgate/outreach.py 2>/dev/null | head -1 || echo 'outreach: unavailable')"
 echo "surfaces: site, github repo, cli, tests"
 echo "STATUS: ok"
