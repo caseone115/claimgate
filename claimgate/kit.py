@@ -128,7 +128,7 @@ is.
 A checklist is followed until the week it is inconvenient. The free ClaimGate
 starter kit turns questions 1-3 and 5 into a command that exits non-zero:
 
-    pip install claimgate
+    pip install "claimgate @ git+https://github.com/caseone115/claimgate"
     claimgate check draft.md --evidence evidence/ --policy policy.json
 
 Exit code 1 means blocked, which is what makes it work in CI, a pre-commit hook
@@ -151,7 +151,7 @@ A publish gate for AI-assisted marketing copy, in a form you can adopt today.
 
 ## Try it in one minute
 
-    pip install claimgate
+    pip install "claimgate @ git+https://github.com/caseone115/claimgate"
     claimgate check DRAFT-template.md --evidence evidence/ --policy policy.json --no-model
 
 `--no-model` needs no API key and no network: it runs the deterministic checks.
@@ -183,6 +183,10 @@ https://teeterbot.gumroad.com/l/claimgate/LAUNCH39
 
 The source is MIT licensed and public at
 https://github.com/caseone115/claimgate. Nothing is held back from it. Read it,
+
+Install it from that repository, not by the bare name: `pip install claimgate`
+on PyPI is a different, unrelated project (an AI-agent test harness) and it
+has no `claimgate check` command at all.
 and if it does not do what this page says, do not buy it.
 """
 
@@ -204,7 +208,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install claimgate
+      - run: pip install "claimgate @ git+https://github.com/caseone115/claimgate"
       # --no-model keeps this deterministic and offline; it still catches every
       # figure that does not appear in evidence/, and every absolute claim.
       - run: |

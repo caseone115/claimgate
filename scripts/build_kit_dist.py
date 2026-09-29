@@ -83,6 +83,18 @@ def verify(archive: Path) -> None:
     if "45-check" in readme:
         raise SystemExit("REFUSING TO SHIP — the kit README still carries the "
                          "stale 45-check count")
+    # found 2026-09-30: the kit told adopters to run a bare pip install
+    # claimgate, which installs a different, unrelated PyPI project with no
+    # claimgate check command at all. Every surface in the kit must name the
+    # source repository instead.
+    with zipfile.ZipFile(archive) as _z2:
+        _wf = _z2.read(TOP + "/.github/workflows/claimgate.yml").decode()
+    for _name, _text in (("README", readme), ("CHECKLIST", checklist),
+                        ("CI workflow", _wf)):
+        for _line in _text.splitlines():
+            _s = _line.strip()
+            if _s.startswith("pip install ") and "claimgate" in _s and "git+" not in _s:
+                raise SystemExit("REFUSING TO SHIP - the kit " + _name + " installs the PyPI namesake: " + _s)
     if "claimgate/LAUNCH39" not in checklist:
         raise SystemExit("REFUSING TO SHIP — the checklist lost the launch link")
 

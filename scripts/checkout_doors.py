@@ -55,6 +55,7 @@ URL_CG_LAUNCH = "https://teeterbot.gumroad.com/l/claimgate/LAUNCH39"
 URL_CG_PLAIN = "https://teeterbot.gumroad.com/l/claimgate"
 URL_SS_LAUNCH = "https://teeterbot.gumroad.com/l/simscan/LAUNCH39"
 URL_SS_PLAIN = "https://teeterbot.gumroad.com/l/simscan"
+URL_KIT = "https://teeterbot.gumroad.com/l/claimgate-starter-kit"
 
 
 def _unquote(raw: str) -> str:
@@ -162,6 +163,25 @@ def main() -> int:
     if "except SimScan" not in row:
         FAILURES.append("the launch discount no longer excludes the second product — it is "
                         f"scoped to all products again — raw: {row[:220]}")
+
+    # ---- door 5: neither live listing tells a reader to install the wrong
+    # package. The bare name claimgate on PyPI belongs to a different,
+    # unrelated project which has no claimgate check command at all. A
+    # listing that recommends it sends a buyer nowhere. Found 2026-09-30 in
+    # the kit README; this is the door that notices if it comes back.
+    import urllib.request
+    for label, page_url in (("paid listing", URL_CG_PLAIN),
+                           ("kit listing", URL_KIT)):
+        try:
+            html = urllib.request.urlopen(page_url, timeout=30).read().decode()
+        except Exception as exc:
+            FAILURES.append(label + " could not be fetched: " + str(exc))
+            continue
+        if "pip install claimgate" in html and "git+" not in html:
+            FAILURES.append(
+                label + " tells a reader to run the bare pip install claimgate,"
+                " which installs a different project")
+        NOTES.append(label + " checked for the wrong install command")
 
     print("checkout doors probe")
     for n in NOTES:

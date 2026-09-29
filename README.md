@@ -80,8 +80,15 @@ draft, not left to whoever uploads it.
 No dependencies. Python 3.9+.
 
 ```bash
-pip install claimgate        # or: pip install -e . from a checkout
+pip install "claimgate @ git+https://github.com/caseone115/claimgate"
 ```
+
+**Not a bare `pip install claimgate`.** That name on PyPI belongs to a
+different, unrelated project (an AI-agent test harness), so the bare name
+installs *that* tool, in which `claimgate check` does not exist. This
+product installs from its own source repository, which is also where its
+licence and its tests live. From a checkout, `pip install -e .` is
+equivalent.
 
 ## Start here: the free starter kit
 
@@ -143,7 +150,7 @@ lives.
 ```bash
 python tests/test_claimgate.py     # 55 checks — the engine
 python tests/test_outreach.py      # 21 checks — the outreach guardrails
-python tests/test_kit.py           # 34 checks — the starter kit
+python tests/test_kit.py           # 44 checks — the starter kit
 ```
 
 The suite is written against the product's promises, not its implementation:

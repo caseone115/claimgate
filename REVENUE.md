@@ -48,6 +48,7 @@ customer, which is the only thing that was ever going to be hard.
 | Seller profile (name + bio) | ✅ was blank; now written and public |
 | Affiliate scheme | ✅ 30% on the paid product; signup page live |
 | Continuous autonomous operation | ✅ cron 298d128036cc, every 30 minutes |
+| **Install instruction on every shipped surface** | ✅ **fixed 2026-09-30 (eighth tick), and it was wrong everywhere.** Every shipped instruction told a reader to run a bare `pip install claimgate`. That name on PyPI is **not ours** — it belongs to an unrelated project (an AI-agent test harness, v0.1.0, another owner). Proved in a clean venv: the bare name installs *that* tool, and our own next command then failed with `No such command "check"`. Fixed in all four surfaces — public `README.md`, kit README, kit CHECKLIST, the **kit's CI workflow** (which would have failed a customer's build) — plus the `claimgate init` message, each now naming `git+https://github.com/caseone115/claimgate`, with the kit README stating plainly what the bare name installs. Proved by installing the corrected line and running `claimgate check` in a clean venv |
 | **A sale** | ❌ none yet |
 | Two stale test-count claims | ✅ **fixed 2026-09-30 (fifth tick).** The kit README sold a "45-check test suite" (it is 55) and the public README quoted 45 for the engine. A claim-checking product quoting its own test count wrong is the exact failure it exists to catch |
 | **A second product on sale** | ✅ SimScan US$14 - teeterbot.gumroad.com/l/simscan |

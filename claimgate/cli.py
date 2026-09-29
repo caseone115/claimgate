@@ -162,7 +162,7 @@ def cmd_init_kit(args) -> int:
         print(f"  {p.relative_to(root)}")
     print(f"\nNext:\n"
           f"  cd {root}\n"
-          f"  pip install claimgate\n"
+          f'  pip install "claimgate @ git+https://github.com/caseone115/claimgate"\n'
           f"  claimgate check DRAFT-template.md --evidence evidence/ "
           f"--policy policy.json --no-model\n")
     print(f"{DIM}--no-model needs no API key and no network. The run exits 1 "

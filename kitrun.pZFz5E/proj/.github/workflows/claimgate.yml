@@ -1,0 +1,25 @@
+# Gate the copy on every pull request.
+# Copy to .github/workflows/ in your repository.
+name: claimgate
+
+on:
+  pull_request:
+    paths:
+      - "**/*.md"
+
+jobs:
+  substantiation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install "claimgate @ git+https://github.com/caseone115/claimgate"
+      # --no-model keeps this deterministic and offline; it still catches every
+      # figure that does not appear in evidence/, and every absolute claim.
+      - run: |
+          for draft in $(git diff --name-only origin/${{ github.base_ref }}...HEAD -- '*.md'); do
+            echo "gating $draft"
+            claimgate check "$draft" --evidence evidence/ --policy policy.json --no-model
+          done

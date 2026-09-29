@@ -82,6 +82,23 @@ def record(archive: Path, sha: str) -> Path:
 
 def verify(archive: Path) -> None:
     """Extract and run the suite from inside the extracted copy."""
+    # found 2026-09-30: the shipped README told buyers to run a bare
+    # pip install claimgate. That name on PyPI is a different, unrelated
+    # project with no claimgate check command at all, so the first
+    # instruction the product gave a buyer installed a different tool.
+    # A gate against untrue published claims cannot ship an untrue
+    # instruction.
+    with zipfile.ZipFile(archive) as _z:
+        _readme = _z.read(NAME + "/README.md").decode()
+    _bad = []
+    for _line in _readme.splitlines():
+        _s = _line.strip()
+        if _s.startswith("pip install claimgate") and "git+" not in _s:
+            _bad.append(_s)
+    if _bad:
+        raise SystemExit("REFUSING TO SHIP - the archive README tells a buyer to install the PyPI namesake: " + str(_bad))
+    if "git+https://github.com/caseone115/claimgate" not in _readme:
+        raise SystemExit("REFUSING TO SHIP - the archive README lost the correct install command")
     with tempfile.TemporaryDirectory() as d:
         with zipfile.ZipFile(archive) as z:
             z.extractall(d)
