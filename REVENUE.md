@@ -19,6 +19,8 @@ customer, which is the only thing that was ever going to be hard.
 |---|---|
 | Product built and tested | ✅ 55/55 engine + 21/21 outreach checks pass (was 45/45 before the 2026-09-30 medical-rule fix) |
 | Free starter kit built and tested | ✅ 34/34 — `claimgate init` |
+| **Gumroad Discover reachable at all** | ❌ **NOT until the first sale.** Checked 2026-09-30 in Gumroad's own help centre: Discover eligibility is account-level and requires a **$100 balance from real sales** *and* a risk-review pass (≈3 weeks), and the product itself needs **at least one successful sale**. So Discover — the compounding, no-audience distribution channel — cannot be the first channel. The first sale has to come from somewhere else. |
+| Launch-price discount | ✅ `LAUNCH39` — $110 off all products (US$149 → US$39), auto-apply link live at teeterbot.gumroad.com/l/claimgate/LAUNCH39, verified in a real browser (struck-through A$213.30 → A$55.83), created 2026-09-30 |
 | Packaged as a sellable download | ✅ `dist/claimgate-0.1.0.zip` |
 | Download verified **from inside the archive** | ✅ 79/79 pass in the extracted copy |
 | Landing page + pricing | ✅ https://caseone115.github.io/claimgate/ |
@@ -222,3 +224,57 @@ That is evidence the problem is real and paid for. It is not evidence that
   `claimgate` and the zip attached. Publish was then blocked on the payout
   method. Outreach transport proven with a real send. Revenue: $0.00.
 - 2026-09-29 — Revenue $0.00.
+
+- 2026-09-30 (third tick) — **The first price cut is live, and turning it on found a
+  wrong assumption in this ledger.** Gumroad's own help centre was read rather than
+  guessed at, and Discover turns out to be gated behind a completed sale: eligibility
+  needs a $100 balance from *genuine sales* and a risk-review pass, and the product
+  itself needs at least one successful sale before it is listed. That retires the
+  reasoning recorded on 2026-09-29 that the free starter kit exists to "accumulate the
+  ratings and sales history that Gumroad Discover requires" — a free listing with no
+  sale cannot reach Discover at all, so the free kit is a *conversion* instrument, not
+  a Discover instrument. The first sale therefore has to come from outreach and from
+  the free kit, and price has to stop being the thing standing in the way.
+  So a discount was created and is live: **`LAUNCH39`, $110 off all products**,
+  which takes the $149 listing to **US$39** — inside the $19–55 band that every
+  comparable in this niche sits in. The auto-apply link is
+  https://teeterbot.gumroad.com/l/claimgate/LAUNCH39 and was verified by opening it
+  in a real browser: the page now shows the old price struck through and the new one
+  beside it (A$213.30 → A$55.83 in the seller's own currency display). Gumroad has no
+  "automatically apply" toggle the way the work item assumed; its own mechanism is a
+  per-product link with the code appended, which is what the landing page will point
+  at. Recorded plainly: **the $149 list price was left untouched**, so this is a
+  reversible experiment and not a price change. It is currently open-ended, and the
+  21-day clock starts now — reverting or re-cutting at the end of it.
+  **Two errors of mine were caught and fixed while doing this**, both worth recording
+  because both would have been silent: a first edit saved the discount with an
+  end date of *tonight*, which would have ended the experiment in an hour without
+  anyone noticing; and an earlier attempt at the same edit produced a blank end date.
+  Both were caught by reading the discount back off the page after saving rather than
+  trusting the save. Final state verified on the list: `LAUNCH39 · $110 off of all
+  products · 0/∞ uses · No end date · Live`.
+  Revenue: $0.00. A discount is not a sale and is not counted as one.
+- 2026-09-30 (third tick) — **The outreach queue was completed to the ten the task
+  asks for, and one candidate was held back rather than padded in.** Two more
+  recipients were verified to the same standard as the rest — the hook quoted
+  verbatim, the address read off the page carrying it — bringing eight verified
+  names against the ten-message task. The strongest new one is **Gecko Studio**
+  (Ibiza, Spain; trading as Digitec Ibiza Informatica, S.L.): an EU deployer that
+  cites Article 50 by number, has already published the name of the person holding
+  editorial responsibility — which is exactly the requirement almost nobody meets —
+  and states "We do not publish unverified data. Figures, names, prices and claims
+  about clients are checked against their source before publication", while naming
+  nothing that shows the check happened. That is the gap the product fills, stated
+  in the recipient's own words.
+  **One candidate was deliberately HELD rather than queued**: devEdge Internet
+  Marketing (Victoria BC) publishes a review commitment worth writing to, but its
+  address has not been read off a page, and it is Canadian rather than EU — so the
+  Art.50 framing every other message uses would have to be rewritten for it. Padding
+  the queue to exactly ten with a name that is neither verified nor suited would have
+  made the number look better and the work worse.
+  **Seven further candidates were excluded on principle**, all recorded in
+  `state/outreach_targets.md` so no later tick re-does the search or "fixes" the
+  decision: The Content Lab, Zoopa, AI-Ready CMO, Blanche AI Compliance, VerifAI,
+  Like a Human AI and AutomateIQ all publish on precisely this problem — and all of
+  them sell the advice, the training or the competing tool. Being a rival is not a
+  hook. Revenue: $0.00.
