@@ -26,8 +26,33 @@ customer, which is the only thing that was ever going to be hard.
 | Payout rail | ✅ AU bank account, AUD, weekly, US$100 minimum |
 | Outreach engine | ✅ built, guarded, transport proven end to end |
 | Inbox watcher | ✅ a human reply can no longer sit unread |
-| Daily autonomous operation | ✅ cron 7227cc821fea, 08:00 |
+| Storefront art (cover + thumbnail) | ✅ both listings, verified live |
+| Listing name | ✅ "ClaimGate — Publish Gate for AI-Assisted Marketing Copy" |
+| Seller profile (name + bio) | ✅ was blank; now written and public |
+| Affiliate scheme | ✅ 30% on the paid product; signup page live |
+| Continuous autonomous operation | ✅ cron 298d128036cc, every 30 minutes |
 | **A sale** | ❌ none yet |
+
+- 2026-09-29 — **Shop presentation fixed.** Neither listing had a cover image or
+  a thumbnail, so every appearance — search, profile, a shared link — fell back
+  to Gumroad's grey placeholder. Generated deterministic art in the landing
+  page's palette (`scripts/make_storefront_art.py`), uploaded to both listings,
+  verified live from outside. The paid listing was also named the lowercase slug
+  `claimgate`; it now reads "ClaimGate — Publish Gate for AI-Assisted Marketing
+  Copy" (confirmed in `og:title`). The seller profile had no name and no bio at
+  all; both are now written and public.
+- 2026-09-29 — **Affiliate scheme enabled at 30% on the paid product.** Verified
+  from outside: `teeterbot.gumroad.com/affiliates` returned 404 beforehand and
+  now serves "Become an affiliate for ClaimGate". Costs nothing unless a
+  referred sale happens — the only channel that borrows an audience we do not
+  have, and paid advertising produced 0 of 70 documented first sales.
+- 2026-09-29 — **Free starter kit published as a second listing**
+  (`teeterbot.gumroad.com/l/claimgate-starter-kit`) at US$0 with the contribution
+  box enabled; verified from an unauthenticated fetch as `price: 0.0`. It exists
+  to accumulate the ratings and sales history that gumroad Discover requires and
+  that a $149 listing with no reviews cannot get. A buyer-view check corrected a
+  wrong earlier assumption: the contribution box does appear on a $0 product.
+  Revenue: $0.00.
 
 ## The commercial facts, plainly
 
