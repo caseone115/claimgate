@@ -28,6 +28,9 @@ customer, which is the only thing that was ever going to be hard.
 | Gumroad **auto-apply discount** toggle | ❌ **found and does not save.** The toggle exists (product editor → Pricing → `Automatically apply discount code`) — the 2026-09-30 third-tick note that Gumroad "has no automatically apply toggle" is **wrong**. It was switched on and saved 3×; it reverts to off every time and the public page does not change. Cause probed: its `Discount code` search widget returns **no `LAUNCH39` option**, so the code is typed but never selected, and there is nothing valid for the switch to save. The listing's headline price is therefore still US$149; the discount applies through the launch link or the code at checkout |
 | Packaged as a sellable download | ✅ `dist/claimgate-0.1.0.zip` |
 | Download verified **from inside the archive** | ✅ 112/112 pass in the extracted copy (55 engine + 36 kit + 21 outreach) |
+| **Discount scope** | ✅ **fixed 2026-09-30 (sixth tick).** `LAUNCH39` was scoped to *all products* and was giving the second product away free: `teeterbot.gumroad.com/l/simscan/LAUNCH39` rendered **A$20.06 → A$0** in a logged-out browser. SimScan is now excluded. Verified after saving, from outside: SimScan with the code attached renders plain A$20.06 with no struck-through price, while ClaimGate with the same code still renders A$213.51 struck through to A$55.89 |
+| **Discount code field at checkout** | ✅ **fixed 2026-09-30 (sixth tick).** `Checkout → Checkout form → Add discount code field` was set to **Never**, so the launch price was reachable only through the exact launch link and through no other route. Switched to *Only if a discount is available*, saved, and exercised as a stranger: cart A$216.31 → code applied → **A$61.90** (US$39 + GST) on a logged-out checkout |
+| **A person is waiting for an answer** | ⚠️ **raised 2026-09-30 (sixth tick), not fixed.** The inbox watcher reports 1 person-mail awaiting an answer: the owner's own 2026-09-29 "ClaimGate trial" message. Deliberately not auto-answered — replying to the owner as if they were a prospect would be worse than silence. Re-raised every run until the owner closes it |
 | Landing page + pricing | ✅ https://caseone115.github.io/claimgate/ |
 | Source, MIT licensed | ✅ https://github.com/caseone115/claimgate |
 | Gumroad seller account | ✅ `teeterbot` — email confirmed, payout rail connected |
@@ -364,3 +367,36 @@ That is evidence the problem is real and paid for. It is not evidence that
   (`state/cap_when.py`) and one message clears at 2026-09-30 01:44 UTC, when the
   self-test transport row (not a prospect) falls out of the 24h window.
   **Revenue: $0.00 — a corrected price is not a sale.**
+
+- 2026-09-30 (sixth tick) — **Two ways the shop was losing money, found by
+  shopping in it logged-out as a stranger, and both fixed and verified.** Every
+  previous tick audited the pages *we* publish, with our own session. This tick
+  walked the buyer's path instead — no login, add to cart, checkout, pay — and
+  found two defects that no page we control would ever have shown.
+  **(a) The launch discount was giving a paid product away.** `LAUNCH39` is $110
+  off **all products**; appended to the second product's link
+  (`teeterbot.gumroad.com/l/simscan/LAUNCH39`) its page rendered **A$20.06 →
+  A$0** in a logged-out browser, and the discounts list displayed the giveaway in
+  plain text. A $110-off coupon on a A$20.06 product was never the intent — it
+  exists to take a US$149 product to US$39. SimScan is now excluded from it.
+  Verified after saving, from outside: SimScan with the code attached renders
+  plain **A$20.06**, no struck-through price; ClaimGate with the same code still
+  renders **A$213.51 struck through to A$55.89**.
+  **(b) The checkout had no discount-code field.** `Checkout → Checkout form →
+  Add discount code field to purchase form` was set to **Never**, so the launch
+  price was usable only by someone arriving through the exact launch link — the
+  same class of mistake as a discount on a URL nobody visits, in a different
+  place. Switched to *Only if a discount is available*, saved, re-read after a
+  reload to confirm it persisted, and then **exercised as a stranger**: cart
+  A$216.31, `LAUNCH39` typed into the new field, Apply → **A$61.90**, which is
+  the US$39 launch price plus Australian GST, on a logged-out checkout.
+  **Also re-verified, unchanged:** the published landing page leads with
+  A$213.51 and points at the launch link; suites 55/55 + 36/36 + 21/21; site
+  200; repo 200; `LAUNCH39 · $110 off of all products except SimScan … · 0/∞ ·
+  No end date · Live`.
+  **Raised, not fixed:** the watcher reports **1 person-mail awaiting an
+  answer** — the owner's own 2026-09-29 "ClaimGate trial" message. It is not a
+  prospect's reply, and replying to the owner as though it were would be worse
+  than the silence, so it is surfaced rather than auto-answered.
+  **Revenue: $0.00 — closing a leak is not a sale.** No sale, no reply, no
+  traffic change, nothing measured.
