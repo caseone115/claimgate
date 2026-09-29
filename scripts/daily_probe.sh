@@ -33,9 +33,10 @@ esac
 # --- 3. money. The only number that matters, reported without decoration.
 rev_file="$ROOT/REVENUE.md"
 if [ -f "$rev_file" ]; then
-  echo "revenue: $(grep -m1 '^TOTAL:' "$rev_file" 2>/dev/null || echo 'TOTAL: \$0.00')"
+  # the ledger writes it as "**TOTAL: $0.00**", so match the token, not the line start
+  echo "revenue: $(grep -m1 -o 'TOTAL:[^*]*' "$rev_file" 2>/dev/null | sed 's/[[:space:]]*$//' || echo 'TOTAL: $0.00')"
 else
-  echo "revenue: TOTAL: \$0.00  (no customer yet — no payout rail connected)"
+  echo "revenue: TOTAL: \$0.00  (no ledger)"
 fi
 
 # --- 4. what exists so far

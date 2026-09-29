@@ -77,6 +77,7 @@
   .g3{grid-template-columns:repeat(3,1fr)}
   .g2{grid-template-columns:repeat(2,1fr)}
   @media(max-width:860px){.g3,.g2{grid-template-columns:1fr}}
+  .price.solo{grid-column:1/-1;max-width:560px}
   .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px}
   .card h3{margin:0 0 10px;font-size:17px;letter-spacing:-.01em}
   .card p{margin:0;color:var(--muted);font-size:14.8px}
@@ -121,7 +122,7 @@
       <a href="#why">Why now</a>
       <a href="https://github.com/caseone115/claimgate">GitHub</a>
     </nav>
-    <a class="btn primary" href="#pricing">Start free</a>
+    <a class="btn primary" href="https://teeterbot.gumroad.com/l/claimgate">Buy — $149</a>
   </div>
 </header>
 
@@ -135,9 +136,9 @@
     the law now requires. If a claim cannot be substantiated, the build fails.
   </p>
   <div class="cta">
-    <a class="btn primary" href="https://github.com/caseone115/claimgate">Get it on GitHub</a>
+    <a class="btn primary" href="https://teeterbot.gumroad.com/l/claimgate">Buy the source — $149</a>
     <a class="btn ghost" href="#how">See a real run</a>
-    <small>MIT-licensed · no dependencies · Python 3.9+</small>
+    <small>MIT-licensed source · no dependencies · Python 3.9+ · 30-day refund</small>
   </div>
 
   <div class="term">
@@ -271,10 +272,10 @@
 <section id="pricing">
   <div class="wrap">
     <h2>Pricing</h2>
-    <p class="sub">Per workspace, unlimited drafts. The free tier is the real
-    product, not a crippled trial — it is how you find out whether this works
-    on your copy before you pay for it.</p>
-    <div class="grid g3">
+    <p class="sub">The engine is MIT-licensed and public — read every line before
+    you pay for anything. What is for sale is the packaged, ready-to-run
+    download and its test suite.</p>
+    <div class="grid g2">
       <div class="card price">
         <h3>Open source</h3>
         <div class="amt">$0</div>
@@ -288,31 +289,17 @@
         <a class="btn ghost" href="https://github.com/caseone115/claimgate">Install</a>
       </div>
       <div class="card price feature">
-        <span class="tag">Most teams</span>
-        <h3>Team</h3>
-        <div class="amt">$149<span>/month</span></div>
+        <span class="tag">Available now</span>
+        <h3>Source + test suite</h3>
+        <div class="amt">$149<span> one-off</span></div>
         <ul>
-          <li>Hosted — paste a draft, get the gate report</li>
-          <li>Model adjudication of every claim</li>
-          <li>Your evidence library, versioned</li>
-          <li>Your policy, editable, with sign-off tiers</li>
-          <li>Slack and webhook alerts on a block</li>
-          <li>Audit trail: what was checked, by which rule, when</li>
+          <li>The full CLI and engine, packaged for download</li>
+          <li>Starter policy generator, editable</li>
+          <li>JSON output for CI and publishing pipelines</li>
+          <li>The 45-check test suite</li>
+          <li>30-day money-back guarantee</li>
         </ul>
-        <a class="btn primary" href="#contact">Start free — 14 days</a>
-      </div>
-      <div class="card price">
-        <h3>Regulated</h3>
-        <div class="amt">$499<span>/month</span></div>
-        <ul>
-          <li>Everything in Team</li>
-          <li>Sign-off workflow with named approvers</li>
-          <li>Exportable evidence pack per asset</li>
-          <li>Custom rule authoring</li>
-          <li>Self-hosted or private cloud</li>
-          <li>Retention and reporting to suit your regulator</li>
-        </ul>
-        <a class="btn ghost" href="#contact">Talk to us</a>
+        <a class="btn primary" href="https://teeterbot.gumroad.com/l/claimgate">Buy on Gumroad</a>
       </div>
     </div>
   </div>
@@ -328,7 +315,7 @@
     </p>
     <div class="cta">
       <a class="btn primary" href="mailto:teeter.ai.bot@gmail.com?subject=ClaimGate%20trial&body=Paste%20the%20draft%20you%20want%20checked%20below.%20Nothing%20is%20published%20anywhere.%0A%0A">Email a draft</a>
-      <a class="btn ghost" href="https://github.com/caseone115/claimgate">Run it yourself</a>
+      <a class="btn ghost" href="https://teeterbot.gumroad.com/l/claimgate">Buy the source — $149</a>
     </div>
   </div>
 </section>

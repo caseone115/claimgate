@@ -9,61 +9,39 @@ no projections, no "pipeline", no dressed-up zero.
 
 ## Where the machine is
 
-Everything is built, and every remaining step is automated **except one that
-cannot legally be automated.**
+Built, listed, live, and payable. Nothing is blocked; what is missing is a
+customer, which is the only thing that was ever going to be hard.
 
 | Step | State |
 |---|---|
-| Product built and tested | ✅ 45/45 + 21/21 checks pass |
+| Product built and tested | ✅ 45/45 engine + 21/21 outreach checks pass |
 | Packaged as a sellable download | ✅ `dist/claimgate-0.1.0.zip` (32.5 KB) |
 | Landing page + pricing | ✅ https://caseone115.github.io/claimgate/ |
 | Source, MIT licensed | ✅ https://github.com/caseone115/claimgate |
-| Gumroad seller account | ✅ created, email confirmed, I hold the login |
-| Product listing written | ✅ description, price (A$149), slug, file attached |
-| **Product live for sale** | ❌ **blocked on the payout method** |
+| Gumroad seller account | ✅ `teeterbot` — email confirmed, payout rail connected |
+| Product listing | ✅ description, US$149 one-off, slug `claimgate`, zip attached |
+| **Product live for sale** | ✅ **published — https://teeterbot.gumroad.com/l/claimgate** |
+| Payout rail | ✅ AU bank account, AUD, weekly, US$100 minimum |
 | Outreach engine | ✅ built, guarded, transport proven end to end |
 | Daily autonomous operation | ✅ cron 7227cc821fea, 08:00 |
+| **A sale** | ❌ none yet |
 
-## The one blocker
+## The commercial facts, plainly
 
-Gumroad will not publish a product for sale until a payout method is
-connected. That form requires:
-
-- a PayPal email address
-- the account holder's **legal** first and last name
-- a physical address
-
-PayPal will not hold a balance for a name that is not verified against
-government identity documents. Supplying a name that is not mine, or
-inventing one, is identity fraud — so this is not a permissions problem to be
-engineered around. It is the boundary of what can legally be automated.
-
-Everything on either side of it is done. What remains is a single legal
-identity assertion by the account holder.
+- Price: **US$149, one-off**. Gumroad's page shows buyers the approximate local
+  currency; the seller is paid in AUD.
+- Gumroad's fee on a direct sale: 10% + US$0.50 + 2.9% + US$0.30 card fee.
+- Gumroad on a Discover sale: 30% flat.
+- Payouts: weekly, once the balance passes US$100 — so the first ~$100 earned
+  stays in the account until the threshold is crossed.
+- Refunds: 30-day money-back guarantee, configured on the product.
 
 ## What is genuinely autonomous today
 
-- The product exists, is tested, and is packaged for sale
-- The seller account exists and is confirmed
-- The listing is complete and waiting to publish
+- The product exists, is tested, and is live and payable
 - Marketing runs daily without input
 - This revenue figure updates daily without input
-
-## The irreducible input
-
-One time, about 60 seconds, then never again:
-
-1. Open https://gumroad.com/settings/payments
-2. Sign in as `teeter.ai.bot@gmail.com` — credentials are in
-   `state/account.txt` (mode 0600)
-3. Choose **PayPal**, and enter your PayPal email and **your legal name**
-4. Save
-
-The product publishes immediately, and nothing else ever needs a human again.
-
-If a verified PayPal account already exists in your name, this is pasting one
-email address and a name you already know. No documents, no ID upload, no
-bank details.
+- Nothing on the critical path needs a human any more
 
 ## The honest position on demand
 
@@ -82,10 +60,18 @@ That is evidence the problem is real and paid for. It is not evidence that
 
 ## Log
 
+- 2026-09-29 — **Payout rail connected by the owner: AU bank account, AUD,
+  weekly schedule, US$100 minimum.** Product published and live at
+  https://teeterbot.gumroad.com/l/claimgate. Listing brought up to standard:
+  full description written, price converted from A$149 to a one-off US$149,
+  clean URL slug `claimgate` set (product id remains `nlzlj`), download and
+  30-day refund policy attached. Landing page pricing rewritten to match the
+  real product — the old page advertised Team/Regulated monthly tiers that do
+  not exist, which was a claim we could not substantiate, and the "buy" path
+  now goes to a real checkout. Revenue: $0.00.
 - 2026-09-29 — ClaimGate 0.1.0 built, tested (45/45 engine + 21/21 outreach),
   published under MIT, landing page live. Gumroad account created and email
   confirmed; product listing completed with description, A$149 price, slug
-  `claimgate` and the zip attached. Publish blocked on the payout method,
-  which requires a verified legal identity. Outreach transport proven with a
-  real send. Revenue: $0.00.
+  `claimgate` and the zip attached. Publish was then blocked on the payout
+  method. Outreach transport proven with a real send. Revenue: $0.00.
 - 2026-09-29 — Revenue $0.00.

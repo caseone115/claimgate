@@ -1,70 +1,65 @@
+# ClaimGate is live
+
+**TOTAL: $0.00 — no customer yet.**
+
+The product is published, payable, and linked from the landing page. Nothing on
+the critical path needs a human any more; what is missing is a buyer.
+
+- Buy page: https://teeterbot.gumroad.com/l/claimgate
+- Price: US$149 one-off
+- Payout: AU bank account, AUD, weekly, US$100 minimum (payouts wait until the
+  balance passes the threshold)
+- Landing page: https://caseone115.github.io/claimgate/
+- Source: https://github.com/caseone115/claimgate (MIT)
+
+Full detail and the honest assessment of demand: `REVENUE.md`.
+
+---
+
+## The unblock pack (kept for reference — no longer needed)
+
 # Unblock pack — connecting a payout rail
 
 Everything needed to turn ClaimGate from a built machine into one that can
-receive money. This is the only step that requires the account owner.
+receive money. This is the only step that required the account owner.
 
-**Time: about 10 minutes. Cost: $0.**
+**Status: DONE.** The owner connected a bank payout and the product published.
 
 ---
 
-## The short version
+## What was needed
 
-Use **Gumroad**, and choose **PayPal** as the payout method.
+Use **Gumroad**, and choose a payout method.
 
-Gumroad's own help centre states that for PayPal payouts you "simply add your
-name, address, phone number, and active PayPal account email. You do not need
-to submit an ID or other documents for PayPal payouts."
+Gumroad help centre: for PayPal payouts you "simply add your name, address,
+phone number, and active PayPal account email. You do not need to submit an ID
+or other documents for PayPal payouts."
 
 Bank payouts are heavier — Stripe (Gumroad's processor) is bound by Know Your
-Customer obligations and will ask for a government ID number, a photo of your
-ID front and back, and proof of address. All of that is avoidable for now by
-using the PayPal route. You can switch to bank payouts later once there is
-more than a test sale to move.
+Customer obligations and asks for a government ID number, a photo of your ID
+front and back, and proof of address. The owner chose the bank route, which
+Gumroad accepts for Australia in AUD.
+
+## Step 1 — Gumroad account (done)
+
+1. https://gumroad.com → **Start selling**.
+2. Signed up and verified with the agent's own mailbox.
+
+## Step 2 — Payout settings (done)
+
+**Settings → Payments** → bank account, with the account holder's legal name,
+address, phone, BSB and account number. Payouts are made in AUD on a weekly
+schedule, minimum US$100.
+
+## Step 3 — Product (done)
+
+Published at https://teeterbot.gumroad.com/l/claimgate with the description,
+the US$149 one-off price, the clean slug `claimgate` and
+`claimgate-0.1.0.zip` attached.
 
 ---
 
-## Step 1 — Gumroad account (3 min)
-
-1. Go to https://gumroad.com and click **Start selling**.
-2. Sign up with an email address you control.
-3. Verify the email when it arrives.
-
-## Step 2 — Payout settings (4 min)
-
-1. In Gumroad: **Settings → Payments**.
-2. Under payout method, choose **PayPal**.
-3. Enter:
-   - your **full legal name**
-   - a **physical address** (Gumroad does not accept PO boxes)
-   - a **phone number**
-   - the **email address of an active PayPal account**
-4. Save.
-
-If PayPal is not offered as an option in your region, the fallback is a bank
-payout: Australia is supported for AUD. That route will ask for a government
-ID number, a colour photo of your ID (front and back, JPEG or PNG — not a
-PDF), and proof of address. Same account, heavier paperwork.
-
-## Step 3 — Create the product (3 min)
-
-I will send you the exact listing text, the price, and the files. You paste
-them in and hit publish. Nothing to write.
-
----
-
-## What I need back from you
-
-Only this, once it exists:
-
-- **The Gumroad product URL** (so I can point the landing page at it)
-
-That is the whole handshake. I do not need — and must not be given — your
-bank details, tax file number, ID documents or PayPal password. The account
-stays entirely under your control; I never touch the payout settings.
-
----
-
-## Why this is the blocker and why I cannot do it
+## Why this was the blocker, and why the agent could not do it
 
 Every payment rail — Gumroad, Stripe, PayPal, Lemon Squeezy — is required by
 financial regulation to verify that the person receiving money is a real,
@@ -72,30 +67,18 @@ identified human. That is Know Your Customer law, not a permissions setting.
 
 An AI agent cannot pass identity verification, and it must not try: supplying
 someone else's identity documents, or inventing an identity to satisfy a KYC
-check, is fraud. So this one step is genuinely yours, and it is the only one.
+check, is fraud. The account holder supplied their own details; the agent never
+saw and never entered them.
 
-## What happens the moment it exists
+## What happens now
 
-1. The product goes live within minutes of you pasting the listing.
-2. The daily job at 08:00 starts pointing outreach at the real purchase link.
-3. The first sale is possible immediately — there is no approval queue beyond
-   Gumroad's standard account review.
+The daily job at 08:00 points outreach at the live purchase link. The first sale
+is possible immediately — there is no approval queue beyond Gumroad's standard
+account review.
 
-## Notes on cost
+## Cost
 
-- Gumroad: 10% flat fee per sale. No monthly fee. Minimum payout $10.
-- PayPal: its own transaction fee applies.
-- There is no charge for creating the account or the product listing.
-
-## If you would rather not use Gumroad
-
-Any of these work equally well; the code does not care, only the link does:
-
-| Rail | Fee | ID documents needed |
-|---|---|---|
-| Gumroad + PayPal | 10% + PayPal fees | **No** |
-| Gumroad + bank (AU) | 10% | Yes — ID + proof of address |
-| Stripe direct | ~1.7% + 30c | Yes — business/bank details |
-| Lemon Squeezy | 5% + 50c | Yes, and it is merchant of record |
-
-Gumroad with PayPal is the fastest by a wide margin.
+- Gumroad: 10% + US$0.50 per direct sale, plus 2.9% + US$0.30 card fee.
+- Discover sales: 30% flat.
+- PayPal (the route not taken): its own transaction fee would apply.
+- No charge for the account or the listing.

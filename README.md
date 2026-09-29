@@ -83,6 +83,10 @@ No dependencies. Python 3.9+.
 pip install claimgate        # or: pip install -e . from a checkout
 ```
 
+A packaged, ready-to-run download with the test suite is also sold at
+<https://teeterbot.gumroad.com/l/claimgate> — the source here is the same code,
+MIT licensed, so nothing is held back from this repository.
+
 ## Use
 
 ```bash
