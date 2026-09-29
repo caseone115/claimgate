@@ -278,3 +278,15 @@ That is evidence the problem is real and paid for. It is not evidence that
   Like a Human AI and AutomateIQ all publish on precisely this problem — and all of
   them sell the advice, the training or the competing tool. Being a rival is not a
   hook. Revenue: $0.00.
+- 2026-09-30 (third tick) — **The launch price is now reachable by anyone, not just
+  by whoever already had the link.** A discount that exists only on a URL nobody
+  visits is not an experiment, it is a note to self. The public landing page
+  (https://caseone115.github.io/claimgate/) sent every buyer to the $149 checkout and
+  mentioned the launch price nowhere, so all five buy links were repointed at
+  `teeterbot.gumroad.com/l/claimgate/LAUNCH39`, and the pricing card now shows the
+  list price struck through beside the launch price: **$149 → $39, one-off**. The
+  card states plainly that $39 applies while the launch is running and that $149 is
+  the list price it returns to, so the offer is honest about being temporary rather
+  than pretending $39 is the price. Pushed (`77c4b6f`) and verified **on the live
+  Pages site** (HTTP 200, five launch links present, `<s>$149</s> $39` in the pricing
+  card) rather than on the built output. Revenue: $0.00.
