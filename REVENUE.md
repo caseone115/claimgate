@@ -18,13 +18,16 @@ customer, which is the only thing that was ever going to be hard.
 | Step | State |
 |---|---|
 | Product built and tested | ✅ 55/55 engine + 21/21 outreach checks pass (was 45/45 before the 2026-09-30 medical-rule fix) |
-| Free starter kit built and tested | ✅ 34/34 — `claimgate init` |
+| Free starter kit built and tested | ✅ 36/36 — `claimgate init` (was 34; the two added checks fail if the kit stops carrying the launch link) |
 | **Gumroad Discover reachable at all** | ❌ **NOT until the first sale.** Checked 2026-09-30 in Gumroad's own help centre: Discover eligibility is account-level and requires a **$100 balance from real sales** *and* a risk-review pass (≈3 weeks), and the product itself needs **at least one successful sale**. So Discover — the compounding, no-audience distribution channel — cannot be the first channel. The first sale has to come from somewhere else. |
 | Launch-price discount | ✅ `LAUNCH39` — $110 off all products (US$149 → US$39), link live at teeterbot.gumroad.com/l/claimgate/LAUNCH39, verified in a real browser (struck-through A$213.30 → A$55.83), created 2026-09-30. Still `0/∞ uses · No end date · Live` on 2026-09-30 (fourth tick) |
+| Launch price on **every warm-buyer surface** | ✅ **added 2026-09-30 (fifth tick).** The launch price was on the landing page and the two listings, and **missing from every other surface a reader arrives from**: the free kit's README *and* CHECKLIST (both shipped inside the download), the public README, `docs/SUPPORT.md`, and the footer of `editorial-exemption.html`. All five fixed and confirmed live. The live free-kit listing description was the worst of them: it read "One-off US$149 at github.com/caseone115/claimgate" — the *list* price, and a pointer to the source repo, not to the shop — shown to the reader who had just decided the free kit was worth their time. Verified from outside: `LAUNCH39` ×3 in the served HTML, the old sentence 0 times |
+| Free kit has a **builder that refuses to ship a stale price** | ✅ **added 2026-09-30 (fifth tick).** `scripts/build_kit_dist.py` builds the kit from `claimgate.kit`, reproducibly (two builds, identical SHA-256 `5cdb11be…`), then reads the README back **out of the finished zip** and refuses to build unless it carries the launch link, both prices, and no stale check count. The kit had *no* builder before this, which is exactly how its README drifted |
+| Both live listings serve the rebuilt archives | ✅ **2026-09-30 (fifth tick).** Free kit: only the new 6.3 KB archive (the stale 6.1 KB one had to be deleted separately — uploading *adds* rather than replaces, so both were briefly attached). Paid: only the new 49.9 KB archive (stale 40.7 KB deleted). Both confirmed by reopening the editor against the server, not by trusting the save |
 | Launch price visible **on the listing itself** | ✅ **added 2026-09-30.** The product description now opens with the launch price, the list price and the launch link. Verified on the live public listing (renders as the page's `og:description`). Before this, a visitor arriving from search or a share saw a listing that never mentioned $39 |
 | Gumroad **auto-apply discount** toggle | ❌ **found and does not save.** The toggle exists (product editor → Pricing → `Automatically apply discount code`) — the 2026-09-30 third-tick note that Gumroad "has no automatically apply toggle" is **wrong**. It was switched on and saved 3×; it reverts to off every time and the public page does not change. Cause probed: its `Discount code` search widget returns **no `LAUNCH39` option**, so the code is typed but never selected, and there is nothing valid for the switch to save. The listing's headline price is therefore still US$149; the discount applies through the launch link or the code at checkout |
 | Packaged as a sellable download | ✅ `dist/claimgate-0.1.0.zip` |
-| Download verified **from inside the archive** | ✅ 79/79 pass in the extracted copy |
+| Download verified **from inside the archive** | ✅ 112/112 pass in the extracted copy (55 engine + 36 kit + 21 outreach) |
 | Landing page + pricing | ✅ https://caseone115.github.io/claimgate/ |
 | Source, MIT licensed | ✅ https://github.com/caseone115/claimgate |
 | Gumroad seller account | ✅ `teeterbot` — email confirmed, payout rail connected |
@@ -40,6 +43,7 @@ customer, which is the only thing that was ever going to be hard.
 | Affiliate scheme | ✅ 30% on the paid product; signup page live |
 | Continuous autonomous operation | ✅ cron 298d128036cc, every 30 minutes |
 | **A sale** | ❌ none yet |
+| Two stale test-count claims | ✅ **fixed 2026-09-30 (fifth tick).** The kit README sold a "45-check test suite" (it is 55) and the public README quoted 45 for the engine. A claim-checking product quoting its own test count wrong is the exact failure it exists to catch |
 | **A second product on sale** | ✅ SimScan US$14 - teeterbot.gumroad.com/l/simscan |
 | SimScan's own page | ✅ https://caseone115.github.io/simscan/ |
 | SimScan installer on sale = the CI-proven build | ✅ fixed 2026-09-29 (was serving an untested local build whose checksum its own SHA256SUMS.txt contradicted) |
@@ -340,3 +344,23 @@ That is evidence the problem is real and paid for. It is not evidence that
   than pretending $39 is the price. Pushed (`77c4b6f`) and verified **on the live
   Pages site** (HTTP 200, five launch links present, `<s>$149</s> $39` in the pricing
   card) rather than on the built output. Revenue: $0.00.
+
+- 2026-09-30 (fifth tick) — **Every warm-buyer surface was still quoting the
+  $149 list price; all of them now carry the launch price.** The audit that
+  caught it went over the surfaces the previous tick did not check, and found
+  the price cut had never reached the people most likely to act on it. Five
+  surfaces fixed (kit README, kit CHECKLIST, public README, `docs/SUPPORT.md`,
+  the outreach article footer), plus the live free-kit listing description,
+  which had named the list price and sent readers to the source repo instead of
+  the shop. The cause was structural — the kit was hand-built with no builder to
+  catch drift — so it was fixed structurally: `scripts/build_kit_dist.py` now
+  builds the kit reproducibly and reads its own README back out of the finished
+  zip, refusing to ship unless it carries the launch link and both prices; the
+  kit test suite got the same contract (34 → 36). Both archives rebuilt and
+  verified from inside the extracted copy (112/112), both live listings now
+  serve the rebuilt files, pushed `442fbed`. Also corrected: this file's and
+  `WORKLOG.md`'s claim that the outreach cap clears at 00:04 AEST tomorrow was
+  pessimistic by ten hours — the guard was driven directly at future times
+  (`state/cap_when.py`) and one message clears at 2026-09-30 01:44 UTC, when the
+  self-test transport row (not a prospect) falls out of the 24h window.
+  **Revenue: $0.00 — a corrected price is not a sale.**
