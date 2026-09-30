@@ -145,12 +145,34 @@ lives.
 - **Not a lawyer.** It enforces the policy you write. It flags where AI
   disclosure obligations appear to apply; it does not give legal advice.
 
+## Use it from an MCP client
+
+The same checks run as an MCP server, so an agent can gate a draft before it
+publishes instead of a human remembering to. `mcp/server.py` needs no install —
+`uv` fetches its one dependency. Add this to your client's config:
+
+```json
+{
+  "mcpServers": {
+    "claimgate": {
+      "command": "uv",
+      "args": ["run", "--directory", "<repo>/mcp", "<repo>/mcp/server.py"]
+    }
+  }
+}
+```
+
+It exposes `check_draft`, `check_draft_json`, `list_claims`,
+`check_policy_only` and `about`. See [`mcp/README.md`](mcp/README.md), including
+what it deliberately refuses to do.
+
 ## Tests
 
 ```bash
 python tests/test_claimgate.py     # 55 checks — the engine
 python tests/test_outreach.py      # 21 checks — the outreach guardrails
 python tests/test_kit.py           # 44 checks — the starter kit
+python scripts/test_mcp_server.py  # 19 checks — the MCP server, over real stdio
 ```
 
 The suite is written against the product's promises, not its implementation:

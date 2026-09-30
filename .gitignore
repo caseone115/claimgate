@@ -21,3 +21,10 @@ REVENUE.md.bak-*
 # The revenue ledger records prospect company names and, until 2026-10-01, their
 # email addresses. It stays on the build box and out of this PUBLIC repository.
 REVENUE.md
+
+# Built artifacts belong on the release page, not in git. The .mcpb is
+# rebuilt by scripts/mcp_bundle.py on every tag and attached to the release
+# the MCP Registry entry points at; committing it would mean two sources of
+# truth for the same file and the registry hashes the one it downloads.
+dist/bundle/
+dist/*.mcpb

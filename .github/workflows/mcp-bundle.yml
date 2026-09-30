@@ -1,0 +1,45 @@
+name: MCP bundle
+
+# Builds the MCP Bundle and, on a tag, attaches it to the release the MCP
+# Registry entry points at. The registry fetches that URL and requires its
+# SHA-256 to equal the fileSha256 recorded in the registry entry, so this
+# workflow and the registry entry have to be changed together, never by hand.
+
+on:
+  push:
+    tags: ["v*"]
+  pull_request:
+    paths:
+      - "mcp/**"
+      - "scripts/mcp_bundle.py"
+      - ".github/workflows/mcp-bundle.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+      - name: Test the MCP server over real stdio
+        run: uv run --with mcp --python 3.12 python scripts/test_mcp_server.py
+
+  bundle:
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+      - name: Pack the bundle
+        run: python3 scripts/mcp_bundle.py
+      - name: Attach it to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          VERSION="${GITHUB_REF_NAME#v}"
+          gh release upload "$GITHUB_REF_NAME" "dist/claimgate-$VERSION.mcpb" --clobber
