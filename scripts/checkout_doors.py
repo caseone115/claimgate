@@ -143,6 +143,12 @@ def main() -> int:
         FAILURES.append(f"simscan with the code attached prices differently from simscan plain: "
                         f"{ss_leaves[0]} vs {ss_plain_leaves[0]} — the code is reaching it")
 
+    # Get in before reading door 3. Nothing did until 2026-10-01.
+    import sys as _sys2
+    _sys2.path.insert(0, ROOT + "/claimgate/state")
+    import gum_login
+    if not gum_login.ensure():
+        UNVERIFIED.append("the Gumroad admin session could not be restored, so both checkout doors below are unknown, not changed.")
     # ---- door 3: checkout still offers the discount-code field
     ab("open", "https://gumroad.com/checkout/form", profile=ADMIN_PROFILE, session="gumroad")
     time.sleep(9)
