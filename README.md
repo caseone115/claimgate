@@ -166,6 +166,12 @@ It exposes `check_draft`, `check_draft_json`, `list_claims`,
 `check_policy_only` and `about`. See [`mcp/README.md`](mcp/README.md), including
 what it deliberately refuses to do.
 
+The **free starter kit** is a second registry entry,
+`io.github.caseone115/claimgate-kit`. `init_kit` writes the policy file, the
+evidence folder, the checklist and the GitHub Actions job into a directory you
+name; `check_kit` then runs that gate offline with no API key. See
+[`mcp-kit/`](mcp-kit/).
+
 ## Tests
 
 ```bash

@@ -189,10 +189,13 @@
     <h3 style="margin:0 0 8px;font-size:1.02rem">Use it from an AI agent</h3>
     <p class="sub" style="margin:0 0 12px">
       The same check runs as an MCP server, so an agent can gate a draft before
-      it publishes instead of someone remembering to. It is listed in the
-      official MCP Registry as
-      <code>io.github.caseone115/claimgate</code>, and needs no account and
-      nothing installed beyond <code>uv</code>.
+      it publishes instead of someone remembering to. Two entries are listed in
+      the official MCP Registry, and neither needs an account or anything
+      installed beyond <code>uv</code>:
+      <code>io.github.caseone115/claimgate</code> for the full engine, and
+      <code>io.github.caseone115/claimgate-kit</code> for the free starter kit,
+      which writes the policy, the evidence folder and the CI job into your
+      repository before it checks anything.
     </p>
     <div class="term">
       <div class="bar">
@@ -211,9 +214,10 @@
 }</pre>
     </div>
     <p class="sub" style="margin:0">
-      Five tools: <code>check_draft</code>, <code>check_draft_json</code>,
-      <code>list_claims</code>, <code>check_policy_only</code> and
-      <code>about</code>. It fails closed the same way the command line does —
+      The engine entry gives five tools: <code>check_draft</code>,
+      <code>check_draft_json</code>, <code>list_claims</code>,
+      <code>check_policy_only</code> and <code>about</code>. It fails closed the
+      same way the command line does —
       with no evidence it answers “unverified”, never “fine”.
       <a href="https://github.com/caseone115/claimgate/tree/master/mcp">Source and setup</a>.
     </p>
