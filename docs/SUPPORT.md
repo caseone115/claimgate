@@ -1,9 +1,12 @@
 # ClaimGate — what this is, who does what
 
-**ClaimGate home:** https://caseone115.github.io/claimgate/ ·
-**Buy the engine (US$39 launch price):**
-https://teeterbot.gumroad.com/l/claimgate/LAUNCH39 · **Free starter kit:**
-https://teeterbot.gumroad.com/l/claimgate-starter-kit
+[ClaimGate home](https://caseone115.github.io/claimgate/) ·
+[Buy the engine — US$39 launch price](https://teeterbot.gumroad.com/l/claimgate/LAUNCH39) ·
+[Free starter kit](https://teeterbot.gumroad.com/l/claimgate-starter-kit) ·
+[Source (MIT)](https://github.com/caseone115/claimgate)
+
+*(Jekyll renders these as real links. Bare URLs are not linkified on this site
+— that is how this page ended up published with no clickable way to buy.)*
 
 ---
 

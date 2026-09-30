@@ -5,13 +5,13 @@
 The product is published, payable, and linked from the landing page. Nothing on
 the critical path needs a human any more; what is missing is a buyer.
 
-- Buy page (US$39 launch price): https://teeterbot.gumroad.com/l/claimgate/LAUNCH39
+- [Buy page — US$39 launch price](https://teeterbot.gumroad.com/l/claimgate/LAUNCH39)
 - Price: US$39 launch price one-off, US$149 after the launch
 - Payout: AU bank account, AUD, weekly, US$100 minimum (payouts wait until the
   balance passes the threshold)
-- Landing page: https://caseone115.github.io/claimgate/
-- Free starter kit: https://teeterbot.gumroad.com/l/claimgate-starter-kit
-- Source: https://github.com/caseone115/claimgate (MIT)
+- [Landing page](https://caseone115.github.io/claimgate/)
+- [Free starter kit](https://teeterbot.gumroad.com/l/claimgate-starter-kit)
+- [Source](https://github.com/caseone115/claimgate) (MIT)
 
 Full detail and the honest assessment of demand: `REVENUE.md`.
 
