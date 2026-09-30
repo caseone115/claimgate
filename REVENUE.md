@@ -675,3 +675,124 @@ doors afterwards — editing a live listing is what took SimScan off sale on
 
 **TOTAL: $0.00** — an installer that finally agrees with itself is not a sale, and
 the listing still reads 0 sales.
+
+## 2026-09-30 (fifteenth tick) — the shop's installer is now installable by a
+## package manager, which turned a blocked item into a business decision
+
+The Windows Package Manager (`winget`) is the Windows default and SimScan
+appears nowhere in it. Adding it was work-queue item 15, blocked only on the
+installer disagreeing with itself about its own version — which v1.0.2 fixed.
+This tick did the part that is mine and stopped at the one line that is not.
+
+**Item 17 is settled with a measurement, not with an argument.** The open
+question was whether the manifest should point at the free GitHub release or
+the US$14 Gumroad listing. Measured: the release asset is already **public and
+unauthenticated** — a plain `curl` returns HTTP 200 and the published
+`SHA256SUMS.txt` downloads with no credentials at all — so a manifest pointing
+there gives away **nothing that is not already free**, and winget's own policy
+requires an installer URL discoverable from the publisher, which a paywalled
+URL is not (`winget install SimScan` would fail for anyone who had not paid).
+So the decision is the public release, and it is a decision the evidence made.
+
+**Built, derived from one source, and asserted against the published release:**
+three manifests (`version` / `locale` / `installer`, schema 1.12.0) at
+`~/simscan/winget/manifests/s/SimScan/SimScan/1.0.2/`. All three validate with
+**zero errors** against the official 1.12.0 JSON schemas, fetched from `aka.ms`.
+`scripts/check_winget_manifest.py` asserts the version against
+`simscan/__init__.py`, the URL against the release path, the scope against the
+`[Setup]` section's `PrivilegesRequired=lowest`, and — with `--release` — the
+hash against the release's **own published `SHA256SUMS.txt`**, which matched:
+`e83189ea…46af481`. `AppsAndFeaturesEntries` asserts `DisplayVersion 1.0.2`,
+the exact check the v1.0.1 drift failed.
+
+**Proven able to fail: 8/8 real faults refused,** including a manifest that
+points at the Gumroad listing, and a well-formed but wrong hash. That last case
+**caught a gap in my own test first**: the initial test file ran every case
+offline and reported 7/8, and the missing one was the test's fault, not the
+checker's — the checker cannot compare a hash it never fetches. Recorded because
+a guard reported as 8/8 when it is really 7/8 is the sort of thing this ledger
+exists to prevent. Suite 50 → 53.
+
+**Two of winget-pkgs' own pre-submission checks were run and pass:** no other
+open or closed PR mentions SimScan (0), no manifest for it exists (0 code hits,
+no `manifests/s/SimScan` directory), and it is listed in neither the repository
+nor `search/code`.
+
+**Stopped at the one line that is not mine: the Contributor License Agreement.**
+`microsoft/winget-pkgs` requires a signed Microsoft CLA, checked by their bot at
+PR time, and the PR template's first checkbox is that signature. That is a legal
+agreement, not a formality, and it is the account holder's to make rather than
+mine to accept for them — the same line this ledger already drew for identity
+work. Everything up to it is done and pushed (`8b795b1`).
+
+**Also this tick: the standing shop check was run, not assumed.** Exit 0 on all
+three listings published at 14900 / 1400 / 0 cents, the launch link still landing
+on `39/149` of list and not reaching SimScan, checkout still offering the code
+field — re-run deliberately *because* editing a live listing is what took SimScan
+off sale on 2026-09-30.
+
+**TOTAL: $0.00** — a product a package manager can install is not a sale, and
+the shop has still sold nothing.
+
+
+## 2026-09-30 (seventeenth tick) — the pages we send buyers to were a dead end,
+## and nothing had ever read them
+
+Work-queue item 16. Item 9 checks the *shop* every tick. Nothing had ever read
+the two **GitHub Pages product sites** — the pages a buyer actually arrives from
+— and the same fault had already shipped twice on the channel's site next door:
+a promise with no link to the thing it promised, and a page with no path back.
+
+**Read as a stranger, page by page. Four faults, all live:**
+
+1. **`simscan/sample-report.html` was a dead end.** The landing page's own
+   section — "A real report, not a mock-up" — invites a buyer to *"Open the full
+   HTML report"*. That page is the single best evidence the product works, and
+   it carried **no link back to the site and no way to buy**. A stranger who
+   opened it had nowhere to go. Measured, not assumed: `href` count → zero
+   links to `caseone115.github.io/simscan/`, zero to the shop.
+2. **`claimgate/SUPPORT.html` and `claimgate/UNBLOCK.html`** — both published
+   and served by Pages from `docs/` — carried **no buy link either**.
+3. **Both quoted the wrong price.** UNBLOCK said "Price: US$149 one-off" against
+   a shop charging US$39 through the launch link.
+4. **The Article 50 guide's nav pointed at a section that does not exist.**
+   `editorial-exemption.html` linked `./#get`; `index.html`'s ids are
+   `contact`/`how`/`pricing`/`why`. It renders as a working link and scrolls
+   nowhere.
+
+**Fixed, and read back:**
+- The report fix went into **the product's own `to_html()`**, not just the
+  published sample — so the sample stays honestly "unedited engine output" and
+  every buyer's own report carries the links. `simscan` `d463436`; suite 53 → 56
+  (the suite asserted the report was *written* and had never asserted what was
+  *in* it).
+- `SUPPORT.md` and `UNBLOCK.md` now carry the buy link and the launch price.
+  **The first attempt failed and the check caught it:** Jekyll does not linkify
+  bare URLs, so the URL read fine in the source and was still not clickable
+  live. Converted to markdown links. `claimgate` `38550b4`, `8aed5a1`.
+- The nav link now points at `./#pricing`, a section that exists.
+
+**The instrument, so it cannot recur:** `~/revenue-portfolio/scripts/check_sites.py`
+reads both sites' published pages every tick and fails if any page has lost its
+way to the shop, is a dead end, has a fragment link with no matching id, has an
+internal `.html` link that is not a published page, or **advertises a price the
+live listing cannot charge** (the price is read from the shop, not from a
+constant). Rules are a pure `evaluate()`; `scripts/test_check_sites.py` drives
+them over the real faults as fixtures — **26/26** — including a replay of the
+site *as it was*, captured to `state/evidence/sites-prefix-2026-09-30/` before
+the fix, which the checker fails on by name.
+
+**Two of my own mistakes were caught by the fixtures, and are recorded because
+that is the point of writing them:** (a) `./#how` was checked against the ids of
+the page it was written on rather than the home page's, so a working nav link
+was reported broken; (b) the home-page normaliser only understood relative
+forms, so the published `SUPPORT.html` — which links home absolutely — was
+reported as a dead end too. Both fixed; neither would have been seen without
+fixtures. A checker that has never been seen to fail is not a checker, and one
+that has never been seen to pass is not one either.
+
+`scripts/tick_checks.sh` runs the shop check and the site check together, so a
+tick cannot quietly skip one. Both green at 2026-09-30 23:12 AEST.
+
+**TOTAL: $0.00** — a working route to the till is not a sale, and the shop has
+still sold nothing.
