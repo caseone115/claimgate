@@ -799,3 +799,78 @@ tick cannot quietly skip one. Both green at 2026-09-30 23:12 AEST.
 
 **TOTAL: $0.00** — a working route to the till is not a sale, and the shop has
 still sold nothing.
+
+
+## 2026-10-01 (eighteenth tick) — nothing we had built could be found by any
+## search engine, and it had never been checked because it cannot be checked from inside
+
+Work-queue item 2 (distribution is the binding constraint), worked on the one
+surface of it that is not blocked on an account.
+
+**Measured first, on the live web. Not assumed.**
+
+- A `site:` query for our own host on Bing returned **none of our pages** — the
+  result set was filled with unrelated sites (zhihu.com, baidu.com).
+- A quoted-URL query for `"caseone115.github.io/simscan"` returned **none of our
+  pages** (the results were coles.com.au).
+- A product-name query returned **none of our pages**.
+- All four hosts — `claimgate/`, `simscan/`, `madetoorder/`, and the root —
+  answered **404 for both `robots.txt` and `sitemap.xml`**. Not one of the four
+  sites had ever told a search engine it existed.
+- Read from the account itself, not from the shop page: **224 views in the last
+  30 days, 0 sales, 0 paid** on all three products, and every single view is
+  attributed to *Direct, email, IM*. **Not one view has come from search.**
+
+So thirteen pages were live, linked to one another, and unreachable by the one
+free discovery route that exists. This is the same class of fault as the
+seventeenth tick, one level out: the *site* joined up with itself and joined up
+with nothing else.
+
+**Fixed and read back.**
+
+- `robots.txt` and `sitemap.xml` written for all four sites. **A URL is only
+  written into a sitemap if it answers 200 on the live web at that moment** — a
+  sitemap listing a 404 is a false statement a crawler will act on.
+- An IndexNow key file published on all four hosts. Key is 32 hex characters,
+  inside the protocol limit of 8–128.
+- All thirteen URLs submitted via IndexNow: `api.indexnow.org` → **200**,
+  `www.bing.com/indexnow` → **200**, `yandex.com/indexnow` → **202
+  `{"success":true}`**. Accepted by every engine.
+- Committed and pushed: `claimgate` `ff16e4b`, `simscan` `d92a9cc`,
+  `madetoorder` `b910f3a`, root site `cf94858`. All nine artifacts verified
+  live (HTTP 200) afterwards.
+
+**The instrument, so it cannot recur:** `scripts/check_search_visibility.sh`
+reads every robots.txt, every sitemap, every key file and **every URL inside
+every sitemap** back from the live web on each tick, and fails if any of them is
+missing or answers anything but 200. It is wired into `scripts/tick_checks.sh`.
+
+**Two of my own mistakes were caught by fixtures, and are recorded because that**
+**is the point of writing them:**
+
+1. The sitemap-coverage rule first matched only bare `page.html` hrefs. On
+   claimgate the href is `./editorial-exemption.html`, so the rule found **zero**
+   pages and **reported a PASS** — a vacuous green, the exact failure this
+   ledger keeps recording. Caught by driving the rule over that site's real
+   hrefs and noticing it had found nothing. It now strips `./` and **refuses to
+   pass on an empty page list**.
+2. The same rule then flagged `index.html` as a missing page on madetoorder.
+   `index.html` *is* the home page and is already listed as the directory URL, so
+   that was a false alarm, not a fault. Excluded. (The sibling checker made this
+   identical mistake once — a normaliser that understood only the relative form
+   called a working link broken.)
+
+`scripts/test_search_visibility.sh` drives both rules and the sitemap-liveness
+rule over real faults as fixtures — **7/7**, including fixtures 3 and 4, which
+are the vacuous-pass bug itself and the empty-page-list case, and fixture 5, the
+false alarm above. Proven able to fail: fixture 5 failed on the first run
+(because the *fixture* pointed at the wrong path) and passed once the fixture
+was corrected, which is the right way round.
+
+`scripts/tick_checks.sh` now runs the shop check, the site check, the search
+check and both fixture suites together. **All green, exit 0, 2026-10-01 01:48
+AEST.**
+
+**TOTAL: $0.00** — being findable is not being bought, and the shop has still
+sold nothing. The number that matters next is whether the 0-of-224 search
+referral figure moves.
