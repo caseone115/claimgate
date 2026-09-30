@@ -58,7 +58,7 @@ fi
 # --- 4b. did our own outreach actually arrive? A bounce is machine mail, so the
 # watcher hides it from the person-mail report by design; without this line a
 # failed send read exactly like a quiet mailbox, which is how the first bounce
-# (info@frankcaremarketing.com, 2026-09-29) went unseen for fourteen hours.
+# (a UK care-sector marketing address, undeliverable, 2026-09-29) went unseen for fourteen hours.
 out_out="$($PY -m claimgate.inbox --days 14 --bounces 2>&1)"; out_rc=$?
 case "$out_rc" in
   0) echo "outreach-delivery: ok - no delivery failure in 14d" ;;
