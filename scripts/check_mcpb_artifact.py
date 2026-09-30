@@ -63,12 +63,59 @@ _FROM_PLAIN = re.compile(r"from\s+claimgate\s+import\s+([^\n#]+)")
 # script made and did not keep.
 ALWAYS_REQUIRED = ("server/claimgate/__init__.py",)
 
+# The artifact is discovered, not named. The bundle's version is stamped from
+# the git tag, so a check that hard-codes "0.1.0" passes on this box and fails
+# on the next release - which is exactly what happened on the v0.1.1 run, where
+# both bundles existed under a different name and the checker called them both
+# missing. Globbing also means a stale bundle from an earlier version cannot be
+# silently checked in place of the one that was just built.
 VARIANTS = [
-    {"name": "claimgate", "artifact": "dist/claimgate-0.1.0.mcpb",
+    {"name": "claimgate", "stem": "claimgate", "src": "mcp",
      "suite": "scripts/test_mcp_server.py"},
-    {"name": "claimgate-kit", "artifact": "dist/claimgate-kit-0.1.0.mcpb",
+    {"name": "claimgate-kit", "stem": "claimgate-kit", "src": "mcp-kit",
      "suite": "scripts/test_mcp_kit_server.py"},
 ]
+
+
+# A plain glob on "claimgate-*" also matches "claimgate-kit-*", which would let
+# the engine check the kit's bundle and call it its own. So the artifact is
+# resolved from the registry entry that will serve it - server.json's package
+# identifier is the URL the registry fetches, and the file it names is the file
+# that must exist. A version-number regex is the fallback for a checkout where
+# server.json is absent, and "kit" is not a digit, so the two cannot collide.
+VERSIONED = {}
+
+
+def _server_json_filename(src: pathlib.Path) -> str | None:
+    f = src / "server.json"
+    if not f.is_file():
+        return None
+    try:
+        data = json.loads(f.read_text())
+    except (OSError, ValueError):
+        return None
+    for pkg in data.get("packages") or []:
+        url = str(pkg.get("identifier", ""))
+        if url.endswith(".mcpb"):
+            return url.rsplit("/", 1)[-1]
+    return None
+
+
+def find_artifact(stem: str, src: pathlib.Path) -> pathlib.Path | None:
+    """The dist bundle this variant's own registry entry points at, or None."""
+    named = _server_json_filename(src)
+    if named:
+        # The entry names a file. If that file is not on disk the answer is
+        # NOT "some other bundle will do" - that would mean checking an
+        # artifact the registry is not going to serve and reporting it green.
+        path = ROOT / "dist" / named
+        return path if path.is_file() else None
+    pattern = VERSIONED.get(stem) or re.compile(
+        rf"^{re.escape(stem)}-\d+\.\d+\.\d+\.mcpb$")
+    found = sorted((p for p in (ROOT / "dist").glob("*.mcpb")
+                    if pattern.match(p.name)),
+                   key=lambda p: p.stat().st_mtime)
+    return found[-1] if found else None
 
 FAULTS: list[tuple[str, bool]] = []
 
@@ -101,10 +148,10 @@ def required_files(names: list[str], source: str) -> list[str]:
 
 
 def check_variant(v: dict, python_exe: str, workdir: pathlib.Path) -> None:
-    arch = ROOT / v["artifact"]
-    print(f"\n--- {v['name']}  ({v['artifact']}) ---")
-    ok(f"{v['name']}: the packed artifact exists", arch.is_file())
-    if not arch.is_file():
+    arch = find_artifact(v["stem"], ROOT / v["src"])
+    print(f"\n--- {v['name']}  ({arch.name if arch else 'NOT FOUND'}) ---")
+    ok(f"{v['name']}: a packed artifact exists in dist/", arch is not None)
+    if arch is None:
         return
 
     try:
@@ -216,7 +263,7 @@ def main() -> int:
     if a.rebuild:
         for v in VARIANTS:
             subprocess.run([sys.executable,
-                            str(ROOT / "scripts" / "mcp_bundle.py"), v["name"]],
+                            str(ROOT / "scripts" / "mcp_bundle.py"), v["stem"]],
                            check=True, cwd=ROOT)
 
     print("=== the PACKED MCP bundles, checked as a user would receive them ===")
