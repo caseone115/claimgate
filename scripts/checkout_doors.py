@@ -50,6 +50,9 @@ FLAGS = "--no-sandbox,--disable-dev-shm-usage"
 
 FAILURES: list[str] = []
 NOTES: list[str] = []
+# Checks that could not be run because a session was missing. These are
+# neither passes nor failures, and must be visible as their own thing.
+UNVERIFIED: list[str] = []
 
 URL_CG_LAUNCH = "https://teeterbot.gumroad.com/l/claimgate/LAUNCH39"
 URL_CG_PLAIN = "https://teeterbot.gumroad.com/l/claimgate"
@@ -143,26 +146,43 @@ def main() -> int:
     # ---- door 3: checkout still offers the discount-code field
     ab("open", "https://gumroad.com/checkout/form", profile=ADMIN_PROFILE, session="gumroad")
     time.sleep(9)
-    radios = _unquote(ab("eval",
-                r"""Array.from(document.querySelectorAll('input[type=radio]')).slice(0,2)"""
-                r""".map(function(e){return e.checked;}).join(',')""",
-                profile=ADMIN_PROFILE, session="gumroad"))
-    NOTES.append(f"checkout form radios (first two, checked): {radios}")
-    if not radios.startswith("true"):
-        FAILURES.append("the discount-code field at checkout is switched off again — it must be "
-                        f"'Only if a discount is available' — raw: {radios}")
+    where = _unquote(ab("eval", r"document.title + ' | ' + location.href",
+                        profile=ADMIN_PROFILE, session="gumroad"))
+    # A logged-out session does not say the setting is off. It says we cannot see
+    # it. Reporting that as "switched off again" is a false regression, and it is
+    # exactly what this probe did on 2026-10-01 when the admin session expired.
+    if "/login" in where or "Log in" in where:
+        UNVERIFIED.append("the checkout's discount-code field could not be read: the Gumroad "
+                          "admin session on this box has expired, so the probe is logged out. "
+                          "The setting is unknown, not changed. Re-auth state/gumroad-profile "
+                          "to restore this door.")
+    else:
+        radios = _unquote(ab("eval",
+                    r"""Array.from(document.querySelectorAll('input[type=radio]')).slice(0,2)"""
+                    r""".map(function(e){return e.checked;}).join(',')""",
+                    profile=ADMIN_PROFILE, session="gumroad"))
+        NOTES.append(f"checkout form radios (first two, checked): {radios}")
+        if not radios.startswith("true"):
+            FAILURES.append("the discount-code field at checkout is switched off again — it must be "
+                            f"'Only if a discount is available' — raw: {radios}")
 
     # ---- door 4: the discount still names the exclusion
     ab("open", "https://gumroad.com/checkout/discounts", profile=ADMIN_PROFILE, session="gumroad")
     time.sleep(8)
-    row = ab("eval",
-             r"""Array.from(document.querySelectorAll('tr')).map(function(t){"""
-             r"""return t.innerText.replace(/\s+/g,' ');}).join(' ')""",
-             profile=ADMIN_PROFILE, session="gumroad").strip()
-    NOTES.append(f"discount row: {row[:220]}")
-    if "except SimScan" not in row:
-        FAILURES.append("the launch discount no longer excludes the second product — it is "
-                        f"scoped to all products again — raw: {row[:220]}")
+    where2 = _unquote(ab("eval", r"document.title + ' | ' + location.href",
+                         profile=ADMIN_PROFILE, session="gumroad"))
+    if "/login" in where2 or "Log in" in where2:
+        UNVERIFIED.append("the launch discount's exclusions could not be read: the Gumroad admin "
+                          "session has expired. Unknown, not changed.")
+    else:
+        row = ab("eval",
+                 r"""Array.from(document.querySelectorAll('tr')).map(function(t){"""
+                 r"""return t.innerText.replace(/\s+/g,' ');}).join(' ')""",
+                 profile=ADMIN_PROFILE, session="gumroad").strip()
+        NOTES.append(f"discount row: {row[:220]}")
+        if "except SimScan" not in row:
+            FAILURES.append("the launch discount no longer excludes the second product — it is "
+                            f"scoped to all products again — raw: {row[:220]}")
 
     # ---- door 5: neither live listing tells a reader to install the wrong
     # package. The bare name claimgate on PyPI belongs to a different,
@@ -224,11 +244,18 @@ def main() -> int:
     print("checkout doors probe")
     for n in NOTES:
         print("  ·", n)
+    if UNVERIFIED:
+        print("\nCOULD NOT BE VERIFIED (not a pass, not a regression):")
+        for u in UNVERIFIED:
+            print("  ?", u)
     if FAILURES:
         print("\nREGRESSED:")
         for f in FAILURES:
             print("  ✗", f)
         return 1
+    if UNVERIFIED:
+        print("\nPARTIAL: the doors above are green; the unverified ones are unknown, not fine.")
+        return 0
     print("\nOK: the launch link discounts the flagship to 39/149 of its list price "
           "(US$39 of US$149), does not reach the second product, and the checkout "
           "offers the code field.")
