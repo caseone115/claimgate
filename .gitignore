@@ -17,3 +17,7 @@ outreach_suppress.txt
 # asked. The ledger itself is unchanged and still lives here.
 REVENUE.md
 REVENUE.md.bak-*
+
+# The revenue ledger records prospect company names and, until 2026-10-01, their
+# email addresses. It stays on the build box and out of this PUBLIC repository.
+REVENUE.md
