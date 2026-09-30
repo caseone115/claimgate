@@ -36,10 +36,20 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - name: Pack the bundle
         run: python3 scripts/mcp_bundle.py
-      - name: Attach it to the release
+      - name: Publish the bundle on the release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -eu
           VERSION="${GITHUB_REF_NAME#v}"
+          # A tag can exist before its release does, and `gh release upload`
+          # against a release that is not there fails the job - which is what
+          # happened on the first run of this workflow. The release is created
+          # if it is missing rather than assumed to exist.
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 \
+            || gh release create "$GITHUB_REF_NAME" \
+                 --title "ClaimGate $GITHUB_REF_NAME" \
+                 --notes "See the commit history for what is in this release."
           gh release upload "$GITHUB_REF_NAME" "dist/claimgate-$VERSION.mcpb" --clobber
+          gh release view "$GITHUB_REF_NAME" --json assets \
+            --jq '.assets[].name' 

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.caseone115/claimgate",
+  "title": "ClaimGate - claim check before you publish",
+  "description": "Check marketing copy against the evidence you hold: which claims cannot be substantiated, which of your own policy rules it breaks, and whether an AI disclosure is missing.",
+  "version": "0.1.0",
+  "websiteUrl": "https://caseone115.github.io/claimgate/",
+  "repository": {
+    "url": "https://github.com/caseone115/claimgate",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "mcpb",
+      "identifier": "https://github.com/caseone115/claimgate/releases/download/v0.1.0/claimgate-0.1.0.mcpb",
+      "fileSha256": "<computed at publish time>",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
