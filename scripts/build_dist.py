@@ -11,6 +11,7 @@ until a buyer hits it.
 from __future__ import annotations
 
 import hashlib
+import re
 import subprocess
 import sys
 import tempfile
@@ -24,6 +25,12 @@ OUT = ROOT / "dist" / f"{NAME}.zip"
 
 INCLUDE = [
     "claimgate/__init__.py",
+    # suitecounts is imported by tests/test_kit.py, which ships. Leaving it out
+    # made the kit suite die on ImportError inside every archive ever
+    # attached to the listing - so the gate build_dist runs over the
+    # extracted copy has never once passed on the paid listing. The
+    # archive that shipped was the one built for the starter kit.
+    "claimgate/suitecounts.py",
     "claimgate/claims.py",
     "claimgate/cli.py",
     "claimgate/kit.py",
@@ -38,7 +45,6 @@ INCLUDE = [
     "README.md",
     "LICENSE",
     "pyproject.toml",
-    "REVENUE.md",
     "docs/SUPPORT.md",
 ]
 
@@ -120,6 +126,40 @@ def verify(archive: Path) -> None:
                 raise SystemExit(f"REFUSING TO SHIP — archive contains {hits}")
 
 
+# The archive must never name an outreach target. Added 2026-10-01 after the
+# ledger shipped nine live prospect addresses: this file sold for US$39 and was
+# tracked in a PUBLIC repository. The deny-list is read from the target list at
+# build time, so it grows as targets are added rather than being a snapshot.
+TARGETS_FILE = ROOT / "state" / "outreach_targets.md"
+ADDR_RE = re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")
+
+
+def target_addresses() -> set[str]:
+    if not TARGETS_FILE.exists():
+        return set()
+    return {m.lower() for m in ADDR_RE.findall(TARGETS_FILE.read_text(encoding="utf-8"))}
+
+
+def refuse_if_target_addresses_ship(archive: Path) -> None:
+    blocked = target_addresses()
+    if not blocked:
+        print("   note: no target list found, so the address guard had nothing to check")
+        return
+    with zipfile.ZipFile(archive) as z:
+        for name in z.namelist():
+            try:
+                text = z.read(name).decode("utf-8", errors="ignore")
+            except Exception:
+                continue
+            hits = {m.lower() for m in ADDR_RE.findall(text)} & blocked
+            if hits:
+                raise SystemExit(
+                    f"REFUSING TO SHIP - {name} carries prospect address(es) "
+                    f"{sorted(hits)}; a shipped or published file must not name an "
+                    f"outreach target"
+                )
+
+
 if __name__ == "__main__":
     a = build()
     first = digest(a)
@@ -131,6 +171,10 @@ if __name__ == "__main__":
     print(f"built {a} ({a.stat().st_size} bytes)")
     print(f"sha256 {first}  (reproducible across two builds)")
     record(a, first)
+    print("asserting no outreach target is named in the archive:")
+    refuse_if_target_addresses_ship(a)
+    print("   clean")
+
     print("verifying from inside the archive:")
     verify(a)
     print(f"OK — {a}")

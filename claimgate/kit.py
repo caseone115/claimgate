@@ -182,12 +182,12 @@ download, US$39 while the launch is running and US$149 after it, at
 https://teeterbot.gumroad.com/l/claimgate/LAUNCH39
 
 The source is MIT licensed and public at
-https://github.com/caseone115/claimgate. Nothing is held back from it. Read it,
+https://github.com/caseone115/claimgate. Nothing is held back from it: read the
+source first, and if it does not do what this page says, do not buy it.
 
 Install it from that repository, not by the bare name: `pip install claimgate`
 on PyPI is a different, unrelated project (an AI-agent test harness) and it
 has no `claimgate check` command at all.
-and if it does not do what this page says, do not buy it.
 """
 
 WORKFLOW = """\

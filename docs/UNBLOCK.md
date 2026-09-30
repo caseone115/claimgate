@@ -13,7 +13,7 @@ the critical path needs a human any more; what is missing is a buyer.
 - [Free starter kit](https://teeterbot.gumroad.com/l/claimgate-starter-kit)
 - [Source](https://github.com/caseone115/claimgate) (MIT)
 
-Full detail and the honest assessment of demand: `REVENUE.md`.
+Questions, bugs and refunds: see the support page or email the address there.
 
 ---
 

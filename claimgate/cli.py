@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 
 from .claims import extract, summarise
+from .htmltext import to_text
 from .policy import Policy, check_policy
 from .substantiation import Evidence, assess_all, report
 
@@ -39,7 +40,14 @@ def _load_evidence(path: Path) -> list[Evidence]:
     files = sorted(p for p in (path.iterdir() if path.is_dir() else [path])
                    if p.suffix.lower() in (".txt", ".md", ".html"))
     for f in files:
-        out.append(Evidence(id=f.stem, text=f.read_text(errors="replace"),
+        raw = f.read_text(errors="replace")
+        # An .html page is mostly markup and script; a model asked to judge a
+        # claim against it ends up reading CSS.  Strip it to visible text
+        # first, so the evidence is what a reader would actually see.
+        text = to_text(raw) if f.suffix.lower() == ".html" else raw
+        if not text.strip():
+            continue  # nothing a reader sees: do not offer it as evidence
+        out.append(Evidence(id=f.stem, text=text,
                             title=f.name, url=str(f)))
     return out
 

@@ -106,6 +106,13 @@
   .price li:before{content:"✓";color:var(--brand);font-weight:800;margin-right:9px}
   .price .btn{text-align:center}
 
+  /* The comparison table is four columns of prose and cannot shrink to a
+     phone. Without this it set the page's scroll width and the whole page
+     scrolled sideways (measured 2026-10-01: 108px on claimgate, 40px on
+     simscan in an iPhone 14 profile). The wrapper scrolls instead, so the
+     page itself does not move. */
+  .tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tw>table{min-width:560px}
   table{width:100%;border-collapse:collapse;font-size:14.8px}
   th,td{text-align:left;padding:13px 14px;border-bottom:1px solid var(--line)}
   th{color:var(--dim);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.05em}
@@ -280,6 +287,7 @@
   <div class="wrap">
     <h2>How it compares</h2>
     <p class="sub">Adjacent tools are useful and none of them do this.</p>
+    <div class="tw">
     <table>
       <tr><th>Question</th><th>Detectors</th><th>Governance suites</th><th>ClaimGate</th></tr>
       <tr><td>Was this written by AI?</td><td class="yes">Yes</td><td class="no">—</td><td class="no">Not asked</td></tr>
@@ -289,6 +297,7 @@
       <tr><td>Blocks the publish, in CI?</td><td class="no">No</td><td class="no">No</td><td class="yes">Exit code 1</td></tr>
       <tr><td>Can you read the rule that fired?</td><td class="no">No</td><td class="no">Rarely</td><td class="yes">Every finding quotes it</td></tr>
     </table>
+    </div>
   </div>
 </section>
 
