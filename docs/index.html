@@ -184,6 +184,40 @@
 
 <span class="c-bad">BLOCKED</span> — 14 unsupported claim(s), 3 blocking policy finding(s). <span class="c-dim">(exit 1)</span></pre>
   </div>
+
+  <div class="sub" style="margin-top:34px;padding-top:26px;border-top:1px solid rgba(255,255,255,.10)">
+    <h3 style="margin:0 0 8px;font-size:1.02rem">Use it from an AI agent</h3>
+    <p class="sub" style="margin:0 0 12px">
+      The same check runs as an MCP server, so an agent can gate a draft before
+      it publishes instead of someone remembering to. It is listed in the
+      official MCP Registry as
+      <code>io.github.caseone115/claimgate</code>, and needs no account and
+      nothing installed beyond <code>uv</code>.
+    </p>
+    <div class="term">
+      <div class="bar">
+        <span class="dot" style="background:#ff5f57"></span>
+        <span class="dot" style="background:#febc2e"></span>
+        <span class="dot" style="background:#28c840"></span>
+        <span>claude_desktop_config.json</span>
+      </div>
+<pre>{
+  "mcpServers": {
+    "claimgate": {
+      "command": "uv",
+      "args": ["run", "--with", "mcp", "python", "server.py"]
+    }
+  }
+}</pre>
+    </div>
+    <p class="sub" style="margin:0">
+      Five tools: <code>check_draft</code>, <code>check_draft_json</code>,
+      <code>list_claims</code>, <code>check_policy_only</code> and
+      <code>about</code>. It fails closed the same way the command line does —
+      with no evidence it answers “unverified”, never “fine”.
+      <a href="https://github.com/caseone115/claimgate/tree/master/mcp">Source and setup</a>.
+    </p>
+  </div>
 </div>
 
 <section id="why">
