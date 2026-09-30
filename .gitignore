@@ -28,3 +28,14 @@ REVENUE.md
 # truth for the same file and the registry hashes the one it downloads.
 dist/bundle/
 dist/*.mcpb
+
+# The kit bundle builds into dist/bundle-kit and dist/claimgate-kit-<ver>.mcpb,
+# for the same reason as the engine bundle above.
+dist/bundle-kit/
+dist/*.mcpb
+
+# A local backup made while the builder was refactored to serve two variants.
+scripts/mcp_bundle.py.bak-prefork
+
+# uv lockfile for the MCP server environments; not part of the published package.
+uv.lock

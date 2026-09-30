@@ -1,6 +1,21 @@
 # Shared by the MCP bundle build and the release step. Kept in one file rather
 # than duplicated in the workflow so the version stamped into the bundle and
 # the hash printed for the registry entry cannot drift apart.
+#
+# Two entries are built from this box, and the reason is the same for both:
+# the registry is the one distribution surface that needs no new account.
+#
+#   claimgate      the paid engine, five tools, io.github.caseone115/claimgate
+#   claimgate-kit  the free starter kit, five tools, io.github.caseone115/claimgate-kit
+#
+# They are separate registry entries because the registry names one package per
+# server name, and a zero-price front door that an agent can install without a
+# purchase is a different thing from the thing that costs money. Both are MIT
+# and both come out of this repository.
+#
+# The engine's published fileSha256 is pinned by a live registry entry, so this
+# script's default variant must keep producing byte-identical output. That is
+# why the variants differ only in an explicit table and not in logic.
 
 import hashlib
 import json
@@ -11,18 +26,43 @@ import shutil
 import zipfile
 
 
-# Exactly the modules server.py imports. Anything else in claimgate/ is a
-# different concern (the CLI, the starter kit, outreach, the inbox) and has no
-# business travelling with a published artifact.
-SERVER_MODULES = ("__init__.py", "claims.py", "policy.py", "substantiation.py",
-                  "htmltext.py")
+# Exactly the modules each server imports. Anything else in claimgate/ is a
+# different concern (the CLI, outreach, the inbox) and has no business
+# travelling with a published artifact.
+_SERVER_MODULES = ("__init__.py", "claims.py", "policy.py", "substantiation.py",
+                   "htmltext.py")
+_KIT_MODULES = _SERVER_MODULES + ("kit.py",)
+
+VARIANTS = {
+    "claimgate": {
+        "src": pathlib.Path("mcp"),
+        "manifest": pathlib.Path("mcp") / "manifest.json",
+        "modules": _SERVER_MODULES,
+        "stem": "claimgate",
+        "bundle_root": pathlib.Path("dist") / "bundle",
+    },
+    "claimgate-kit": {
+        "src": pathlib.Path("mcp-kit"),
+        "manifest": pathlib.Path("mcp-kit") / "manifest.json",
+        "modules": _KIT_MODULES,
+        "stem": "claimgate-kit",
+        "bundle_root": pathlib.Path("dist") / "bundle-kit",
+    },
+}
 
 
-def build(dist: pathlib.Path = pathlib.Path("dist")) -> pathlib.Path:
+def build(variant: str = "claimgate",
+          dist: pathlib.Path = pathlib.Path("dist")) -> pathlib.Path:
+    try:
+        spec = VARIANTS[variant]
+    except KeyError:
+        raise SystemExit(
+            f"unknown variant {variant!r}; known: {sorted(VARIANTS)}") from None
+
     ref = os.environ.get("GITHUB_REF_NAME", "")
-    man_path = pathlib.Path("mcp") / "manifest.json"
+    man_path = spec["manifest"]
     ver = ref.lstrip("v") or json.loads(man_path.read_text())["version"]
-    root = dist / "bundle"
+    root = dist / spec["bundle_root"].name
     if root.exists():
         shutil.rmtree(root)
     (root / "server" / "claimgate").mkdir(parents=True)
@@ -30,16 +70,16 @@ def build(dist: pathlib.Path = pathlib.Path("dist")) -> pathlib.Path:
     # pulled outreach.py (hand-written messages and prospect addresses) and
     # inbox.py (mailbox logic) into a PUBLISHED release artifact - the same
     # class of leak as the prospect ledger that once sat in this public repo.
-    # The server needs five modules; it ships five modules.
-    for name in SERVER_MODULES:
+    # Each server gets exactly the modules it imports, and nothing else.
+    for name in spec["modules"]:
         shutil.copy2(pathlib.Path("claimgate") / name,
                      root / "server" / "claimgate" / name)
     for name in ("server.py", "pyproject.toml"):
-        shutil.copy2(pathlib.Path("mcp") / name, root / "server" / name)
+        shutil.copy2(spec["src"] / name, root / "server" / name)
     man = json.loads(man_path.read_text())
     man["version"] = ver
     (root / "manifest.json").write_text(json.dumps(man, indent=2) + "\n")
-    out = dist / f"claimgate-{ver}.mcpb"
+    out = dist / f"{spec['stem']}-{ver}.mcpb"
     # Deterministic on purpose. The MCP Registry entry pins the SHA-256 of this
     # file, so a rebuild that produced a different hash would make the entry
     # unverifiable and force the hash to be edited by hand every time. Fresh
@@ -56,10 +96,11 @@ def build(dist: pathlib.Path = pathlib.Path("dist")) -> pathlib.Path:
             info.external_attr = 0o644 << 16
             z.writestr(info, p.read_bytes())
     digest = hashlib.sha256(out.read_bytes()).hexdigest()
+    print(f"variant: {variant}")
     print(f"artifact: {out}")
     print(f"size: {out.stat().st_size} bytes")
     print(f"sha256: {digest}")
-    print(f"::notice::server.json fileSha256 must be {digest}")
+    print(f"::notice::{spec['src']}/server.json fileSha256 must be {digest}")
     _refuse_if_carried_names(root)
     return out
 
@@ -91,4 +132,5 @@ def _refuse_if_carried_names(root: pathlib.Path) -> None:
 
 
 if __name__ == "__main__":
-    build()
+    import sys
+    build(sys.argv[1] if len(sys.argv) > 1 else "claimgate")

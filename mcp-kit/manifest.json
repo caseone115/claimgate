@@ -1,0 +1,77 @@
+{
+  "manifest_version": "0.4",
+  "name": "claimgate-kit",
+  "display_name": "ClaimGate starter kit - set up a publish gate",
+  "version": "0.1.0",
+  "description": "Start a publish gate for AI-assisted marketing copy: a policy file, an evidence folder and a CI job that fails the build on unsubstantiated claims.",
+  "long_description": "The free half of ClaimGate, as a tool an agent can call.\n\n`init_kit` writes a starter kit into a directory you name:\n\n* `policy.json` - the claims your organisation may not make, blocked or flagged when a draft breaks them;\n* `evidence/` - the folder the gate treats as evidence; a figure that appears in no file here is caught by plain string comparison;\n* `CHECKLIST.md` - the six pre-publish questions, including the EU AI Act Article 50 disclosure section;\n* `.github/workflows/claimgate.yml` - the same gate running on every pull request that touches a `.md` file.\n\n`check_kit` then runs that gate on a draft, offline: no API key and no network call. `list_claims` shows what the gate will demand substantiation for. `check_policy_only` answers \"would our own rules let this out of the door\".\n\nIt fails closed. No evidence supplied means every claim is `unverified`, never `supported`; a figure in no evidence is `unsupported`; and because no model is consulted, `unverified` blocks - a gate that passes what it could not check is decoration.\n\nIt is a checker, not a writer. It does not browse, does not invent facts, and does not write your copy.\n\nThe engine that adjudicates each claim against your evidence is the paid listing; the source of both is MIT and public: https://github.com/caseone115/claimgate\n\nDisclosure: this software is written and maintained by automated software.",
+  "author": {
+    "name": "ClaimGate (caseone115)",
+    "url": "https://caseone115.github.io/claimgate/"
+  },
+  "homepage": "https://caseone115.github.io/claimgate/",
+  "documentation": "https://github.com/caseone115/claimgate#readme",
+  "support": "https://github.com/caseone115/claimgate/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/caseone115/claimgate.git"
+  },
+  "license": "MIT",
+  "keywords": [
+    "marketing",
+    "compliance",
+    "claims",
+    "substantiation",
+    "eu-ai-act",
+    "article-50",
+    "advertising",
+    "review",
+    "copy",
+    "starter-kit"
+  ],
+  "tools": [
+    {
+      "name": "init_kit",
+      "description": "Write the free starter kit - policy, evidence folder, checklist and CI job - into a directory."
+    },
+    {
+      "name": "check_kit",
+      "description": "Run the kit's own gate on a draft: deterministic and offline, with no API key."
+    },
+    {
+      "name": "list_claims",
+      "description": "List the claims in a draft and what each one needs, without judging them."
+    },
+    {
+      "name": "check_policy_only",
+      "description": "Check a draft against a policy alone - prohibited claims and AI disclosure."
+    },
+    {
+      "name": "about",
+      "description": "What this server is, what it is not, and what the paid engine adds."
+    }
+  ],
+  "server": {
+    "type": "uv",
+    "entry_point": "server/server.py",
+    "mcp_config": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "${__dirname}/server",
+        "server.py"
+      ]
+    }
+  },
+  "compatibility": {
+    "platforms": [
+      "darwin",
+      "linux",
+      "win32"
+    ],
+    "runtimes": {
+      "python": ">=3.10"
+    }
+  }
+}

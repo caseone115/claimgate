@@ -1,9 +1,14 @@
 name: MCP bundle
 
-# Builds the MCP Bundle and, on a tag, attaches it to the release the MCP
-# Registry entry points at. The registry fetches that URL and requires its
-# SHA-256 to equal the fileSha256 recorded in the registry entry, so this
-# workflow and the registry entry have to be changed together, never by hand.
+# Builds the MCP Bundles and, on a tag, attaches them to the release the MCP
+# Registry entries point at. The registry fetches each URL and requires its
+# SHA-256 to equal the fileSha256 recorded in the matching registry entry, so
+# this workflow and the entries have to be changed together, never by hand.
+#
+# Two bundles, because the registry names one package per server name and the
+# free starter kit is a different thing from the paid engine:
+#   claimgate-<ver>.mcpb      io.github.caseone115/claimgate
+#   claimgate-kit-<ver>.mcpb  io.github.caseone115/claimgate-kit
 
 on:
   push:
@@ -11,7 +16,11 @@ on:
   pull_request:
     paths:
       - "mcp/**"
+      - "mcp-kit/**"
       - "scripts/mcp_bundle.py"
+      - "scripts/test_mcp_server.py"
+      - "scripts/test_mcp_kit_server.py"
+      - "scripts/check_mcpb_artifact.py"
       - ".github/workflows/mcp-bundle.yml"
   workflow_dispatch:
 
@@ -24,8 +33,14 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
-      - name: Test the MCP server over real stdio
+      - name: Test the paid engine's MCP server over real stdio
         run: uv run --with mcp --python 3.12 python scripts/test_mcp_server.py
+      - name: Test the free starter kit's MCP server over real stdio
+        run: uv run --with mcp --python 3.12 python scripts/test_mcp_kit_server.py
+      - name: Prove both suites can fail, by injecting real faults
+        run: |
+          uv run --with mcp --python 3.12 python scripts/test_mcp_server_faults.py
+          uv run --with mcp --python 3.12 python scripts/test_mcp_kit_server_faults.py
 
   bundle:
     needs: test
@@ -34,9 +49,16 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
-      - name: Pack the bundle
-        run: python3 scripts/mcp_bundle.py
-      - name: Publish the bundle on the release
+      - name: Pack both bundles
+        run: |
+          set -eu
+          python3 scripts/mcp_bundle.py claimgate
+          python3 scripts/mcp_bundle.py claimgate-kit
+      - name: Check the PACKED bundles, not the source they came from
+        run: |
+          set -eu
+          uv run --with jsonschema --python 3.12 python scripts/check_mcpb_artifact.py
+      - name: Publish both bundles on the release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -50,6 +72,7 @@ jobs:
             || gh release create "$GITHUB_REF_NAME" \
                  --title "ClaimGate $GITHUB_REF_NAME" \
                  --notes "See the commit history for what is in this release."
-          gh release upload "$GITHUB_REF_NAME" "dist/claimgate-$VERSION.mcpb" --clobber
-          gh release view "$GITHUB_REF_NAME" --json assets \
-            --jq '.assets[].name' 
+          for stem in claimgate claimgate-kit; do
+            gh release upload "$GITHUB_REF_NAME" "dist/$stem-$VERSION.mcpb" --clobber
+          done
+          gh release view "$GITHUB_REF_NAME" --json assets --jq '.assets[].name'

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.caseone115/claimgate-kit",
+  "title": "ClaimGate starter kit - set up a publish gate",
+  "description": "Set up a publish gate for AI-assisted marketing copy: policy, evidence folder and CI job.",
+  "version": "0.1.0",
+  "websiteUrl": "https://caseone115.github.io/claimgate/",
+  "repository": {
+    "url": "https://github.com/caseone115/claimgate",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "mcpb",
+      "identifier": "https://github.com/caseone115/claimgate/releases/download/v0.1.0/claimgate-kit-0.1.0.mcpb",
+      "fileSha256": "96bebf3e4c6a63acc3423fd2937cf28d4617c1a40599c6790da69eaf1b32548e",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
