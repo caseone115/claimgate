@@ -1,25 +1,25 @@
 #!/usr/bin/env python3
-"""Prove the KIT MCP server test suite can fail, by breaking the server for real.
+"""Prove the MCP server test suite can fail, by breaking the server for real.
 
-A test suite that has only ever passed is a suite nobody can trust. This copies
-the kit server into a scratch tree, injects one genuine fault at a time, runs
-the real suite against the broken copy, and requires the suite to go red. A
-fault that is NOT caught is a hole in the suite, so this exits non-zero.
+A test suite that has only ever passed is a suite nobody can trust. This
+copies the repository's MCP server into a scratch tree, injects one genuine
+fault at a time, runs the real suite against the broken copy, and requires the
+suite to go red. A fault that is NOT caught is a hole in the suite, not a
+curiosity, so this exits non-zero and names it.
 
-The first five are the same ways the engine could quietly stop being safe. The
-last two exist only on this entry, and they are the ways a *free front door* in
-particular goes wrong: it overwrites the policy someone has been editing, and it
-tells a reader the copy is clear when the gate was blocked.
+The faults are the ways this particular tool could quietly stop being safe:
 
-  1. fail-open      - "no evidence supplied" starts answering `supported`.
-  2. no numbers     - the deterministic numeric gate stops comparing figures.
-  3. silent pass    - an empty or unreadable draft is reported clean.
-  4. no disclosure  - the EU AI Act Article 50 disclosure rule stops firing.
-  5. silent empty   - a missing draft_path becomes an empty draft.
-  6. force-always   - init_kit stops refusing and overwrites somebody's policy.
-  7. verdict-clear  - the human report says CLEAR whatever the gate decided.
+  1. fail-open   - "no evidence supplied" starts answering `supported`, which
+                   is the single worst thing this server could do.
+  2. no numbers  - the deterministic numeric gate stops comparing figures, so
+                   a fabricated statistic can be waved through by prose.
+  3. silent pass - an empty or unreadable draft is reported clean instead of
+                   being an error.
+  4. no disclosure - the EU AI Act Article 50 disclosure rule stops firing.
+  5. silent empty - a missing draft_path becomes an empty draft rather than an
+                   error the caller can see.
 
-Run: python3 scripts/test_mcp_kit_server_faults.py
+Run: python3 scripts/test_mcp_server_faults.py
 """
 from __future__ import annotations
 
@@ -31,37 +31,29 @@ import sys
 import tempfile
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
-SUITE = REPO / "scripts" / "test_mcp_kit_server.py"
+SUITE = REPO / "scripts" / "test_mcp_server.py"
 
 FAULTS = [
     ("fail-open: 'no evidence supplied' starts answering 'supported'",
      "server.py",
-     'return [Verdict(c, "unverified", reason=(',
-     'return [Verdict(c, "supported", reason=('),
+     'verdicts = [Verdict(c, "unverified", reason=(',
+     'verdicts = [Verdict(c, "supported", reason=('),
     ("the deterministic numeric gate is disabled",
      "server.py",
-     "missing = numbers_supported(c.text, blob)[1]\n        if missing:",
-     "missing = numbers_supported(c.text, blob)[1]\n        if False:"),
+     'missing = numbers_supported(\n                c.text, " ".join(e.text for e in evidence))[1]\n            if missing:',
+     'missing = numbers_supported(\n                c.text, " ".join(e.text for e in evidence))[1]\n            if False:'),
     ("an empty draft is quietly reported clear",
      "server.py",
      'if not draft.strip():\n        raise ValueError("`draft` is empty; supply the copy to check")',
      'if not draft.strip():\n        return "", "draft (inline)"'),
     ("the AI-disclosure rule stops firing",
-     "policy.py",
+     "claimgate/policy.py",
      'if policy.disclosure_required:',
      'if False:'),
     ("a missing draft_path silently becomes an empty draft",
      "server.py",
      'if not p.is_file():\n            raise ValueError(f"draft_path does not exist or is not a file: {p}")',
      'if not p.is_file():\n            return "", str(p)'),
-    ("init_kit stops refusing and overwrites an existing policy",
-     "server.py",
-     "written = kitmod.build(root, force=force)",
-     "written = kitmod.build(root, force=True)"),
-    ("the human report says CLEAR whatever the gate decided",
-     "server.py",
-     '"VERDICT: BLOCKED - do not publish as it stands."',
-     '"VERDICT: CLEAR - do not publish as it stands."'),
 ]
 
 
@@ -70,19 +62,18 @@ def main() -> int:
     ap.add_argument("--python", default=sys.executable)
     a = ap.parse_args()
 
-    print("=== can the KIT MCP server suite fail? injected faults ===")
+    print("=== can the MCP server suite fail? injected faults ===")
     all_caught = True
     for label, rel, old, new in FAULTS:
-        tmp = pathlib.Path(tempfile.mkdtemp(prefix="cgkitfault-"))
+        tmp = pathlib.Path(tempfile.mkdtemp(prefix="cgfault-"))
         try:
             (tmp / "claimgate").mkdir()
-            (tmp / "mcp-kit").mkdir()
+            (tmp / "mcp").mkdir()
             for f in REPO.glob("claimgate/*.py"):
                 shutil.copy2(f, tmp / "claimgate" / f.name)
-            shutil.copy2(REPO / "mcp-kit" / "server.py",
-                         tmp / "mcp-kit" / "server.py")
-            target = (tmp / "mcp-kit" / rel) if rel == "server.py" \
-                else (tmp / "claimgate" / rel)
+            shutil.copy2(REPO / "mcp" / "server.py", tmp / "mcp" / "server.py")
+            target = (tmp / "mcp" / rel) if rel == "server.py" \
+                else (tmp / "claimgate" / "policy.py")
             text = target.read_text()
             if old not in text:
                 print(f"  INVALID    {label}")
@@ -93,7 +84,7 @@ def main() -> int:
             target.write_text(text.replace(old, new, 1))
             p = subprocess.run(
                 [a.python, str(SUITE), "--python", a.python,
-                 "--server", str(tmp / "mcp-kit" / "server.py")],
+                 "--server", str(tmp / "mcp" / "server.py")],
                 capture_output=True, text=True, timeout=1200)
             caught = p.returncode != 0
             tail = [l.strip() for l in p.stdout.splitlines()
