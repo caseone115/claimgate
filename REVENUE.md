@@ -753,8 +753,11 @@ a promise with no link to the thing it promised, and a page with no path back.
    links to `caseone115.github.io/simscan/`, zero to the shop.
 2. **`claimgate/SUPPORT.html` and `claimgate/UNBLOCK.html`** — both published
    and served by Pages from `docs/` — carried **no buy link either**.
-3. **Both quoted the wrong price.** UNBLOCK said "Price: US$149 one-off" against
-   a shop charging US$39 through the launch link.
+3. **`UNBLOCK.html` quoted the wrong price.** It said "Price: US$149 one-off"
+   against a shop charging US$39 through the launch link. **Corrected after
+   reading the captured pages rather than trusting this note's first version,
+   which said "both": `SUPPORT.html` already carried the launch price
+   correctly.**
 4. **The Article 50 guide's nav pointed at a section that does not exist.**
    `editorial-exemption.html` linked `./#get`; `index.html`'s ids are
    `contact`/`how`/`pricing`/`why`. It renders as a working link and scrolls
