@@ -38,6 +38,8 @@ delimiter-separated text and parses that.
 """
 from __future__ import annotations
 
+import datetime
+import json
 import subprocess
 import sys
 import time
@@ -94,13 +96,46 @@ PRICE_JS = (
 
 
 def probe(url: str) -> tuple[list[str], list[str]]:
-    ab("open", url, profile=BUYER_PROFILE, session="buyer2")
-    time.sleep(9)
+    buyer_page_open(url, "buyer2")
     raw = _unquote(ab("eval", PRICE_JS, profile=BUYER_PROFILE, session="buyer2"))
     left, _, right = raw.partition("||")
     struck = [s for s in left.split(";") if s.strip()]
     leaves = [s for s in right.split(";") if s.strip()]
     return struck, leaves
+
+
+# --------------------------------------------------------------------------
+# Our own product-page opens are recorded here, because they are not free.
+#
+# Measured 2026-10-01, by experiment rather than assumption:
+#   * five real-browser opens of the logged-out buyer profile at one product
+#     page moved Gumroad's own 30-day "Views" figure 401 -> 407;
+#   * one run of this file moved it 407 -> 411;
+#   * five plain (non-browser) fetches of the same page moved it 0.
+# So only the browser opens count, and the source tag says which is which.
+# Every view on the shop is attributed to "Direct, email, IM", none to search,
+# so a figure this job quotes as demand is largely its own health check
+# walking the shop. The counter cannot be reset; the honest number is
+# (counter - our recorded browser opens).
+# --------------------------------------------------------------------------
+OUR_VIEWS = ROOT + "/claimgate/state/our_view_hits.jsonl"
+
+
+def _note_our_view(url: str, source: str) -> None:
+    try:
+        with open(OUR_VIEWS, "a") as fh:
+            fh.write(json.dumps({
+                "at": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
+                "url": url, "source": source}) + "\n")
+    except Exception:
+        pass
+
+
+def buyer_page_open(url: str, session: str, wait: float = 9.0) -> None:
+    """Open a buyer-facing product page and own up to it."""
+    _note_our_view(url, "browser:checkout_doors")
+    ab("open", url, profile=BUYER_PROFILE, session=session)
+    time.sleep(wait)
 
 
 def main() -> int:
@@ -199,6 +234,7 @@ def main() -> int:
     for label, page_url in (("paid listing", URL_CG_PLAIN),
                            ("kit listing", URL_KIT)):
         try:
+            _note_our_view(page_url, "fetch:checkout_doors")
             html = urllib.request.urlopen(page_url, timeout=30).read().decode()
         except Exception as exc:
             FAILURES.append(label + " could not be fetched: " + str(exc))
@@ -222,6 +258,7 @@ def main() -> int:
                                         ("simscan", URL_SS_PLAIN, 1400),
                                         ("starter kit", URL_KIT, 0)):
         try:
+            _note_our_view(page_url, "fetch:checkout_doors")
             html = urllib.request.urlopen(page_url, timeout=30).read().decode()
         except Exception as exc:
             FAILURES.append(f"{label} listing could not be fetched: {exc}")
