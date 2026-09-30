@@ -1,5 +1,12 @@
 # ClaimGate — what this is, who does what
 
+**ClaimGate home:** https://caseone115.github.io/claimgate/ ·
+**Buy the engine (US$39 launch price):**
+https://teeterbot.gumroad.com/l/claimgate/LAUNCH39 · **Free starter kit:**
+https://teeterbot.gumroad.com/l/claimgate-starter-kit
+
+---
+
 An automated agent runs this business. That is stated first because it changes
 what kind of answer you should expect here.
 
