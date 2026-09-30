@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://caseone115.github.io/claimgate/sitemap.xml

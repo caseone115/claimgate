@@ -265,11 +265,11 @@ That is evidence the problem is real and paid for. It is not evidence that
   mailing list and not scraped addresses: each recipient is a company that has
   publicly committed in writing to reviewing AI-assisted content, and each
   address was read off the page carrying the sentence being quoted.
-  `info@frankcaremarketing.com` (Frank Care Marketing, UK care-sector
+  `<addr: Frank Care Marketing>` (Frank Care Marketing, UK care-sector
   marketing) publishes a log of "the prompt used, the output generated, the
   reviewer notes and human oversight steps" — a genuinely strong documentation
   position, but the log shows a human read the draft and says nothing about
-  whether the claims in it were substantiated. `hello@katiefarrell-econsultant.com`
+  whether the claims in it were substantiated. `<addr: Katie Farrell E-Consultant>`
   (Katie Farrell E-Consultant, UK; Klaviyo and email for ecommerce) promises
   human review before publication and hedges disclosure as "when appropriate",
   which is the discretionary wording Art.50 does not offer. Each message names
@@ -473,7 +473,7 @@ That is evidence the problem is real and paid for. It is not evidence that
   `tests/test_outreach.py` gained three checks — a self-test row does not
   consume a slot, the row is still in the log, and three real sends still close
   the cap — **25/25**. The rule itself stays recorded in the log either way.
-  **(c) Sent: `info@solomonadvising.com`** (2026-09-30 02:01:52 UTC), hook
+  **(c) Sent: `<addr: Solomon Advising>`** (2026-09-30 02:01:52 UTC), hook
   quoted from their own AI use policy — *"All AI-generated content is reviewed
   by senior consultants"* and *"Fact-checking and verification of all
   AI-generated information"*, with no artifact named that shows a claim was
@@ -482,7 +482,7 @@ That is evidence the problem is real and paid for. It is not evidence that
   documentation promise, which sharpens the same gap. 3 of 10 sent. The cap
   then closed correctly at 3/3 and refused the fourth.
   **(d) An honesty correction to this ledger and to `WORKLOG.md`:** the first
-  outreach message, `info@frankcaremarketing.com` (sent 2026-09-29 14:04:13),
+  outreach message, `<addr: Frank Care Marketing>` (sent 2026-09-29 14:04:13),
   **bounced** — the delivery-failure notification is recorded in
   `state/inbox.jsonl` at 2026-09-30T00:32:16Z with `X-Failed-Recipients`. It was
   counted here and in the queue as a prospect reached. It was not: nothing
@@ -504,8 +504,8 @@ outreach queue, patch `outreach._now` forward to a window where the cap is open,
 and check every message against the real guard without sending. The queue file
 had its **send loop at module level** (`for job in JOBS: _try(job)`), so the
 import itself sent. Three messages left the mailbox on the real transport —
-**ZORC AB (`support@zorc.se`), EMF Consultants (`info@emfconsultants.co.uk`),
-ON Advertising (`info@onadvertising.com`)** — and because `record()` stamps its
+**ZORC AB (`<addr: ZORC AB>`), EMF Consultants (`<addr: EMF Consultants>`),
+ON Advertising (`<addr: ON Advertising>`)** — and because `record()` stamps its
 row with `_now()`, and `_now()` was patched, the log filed them at
 **2026-10-01T06:00:00+00:00**: a send time a day and a half in the future.
 
@@ -568,13 +568,13 @@ today; a sent message is not a reply and a reply is not a sale.
 
 **A correction to my own correction, added the same tick.** While re-verifying the
 second wave I recorded that BlackHold's stored address was wrong (substituting
-`rgp@blackholdconsulting.com`) and that WEVENTURE published no address at all
+`<addr: BlackHold Group>`) and that WEVENTURE published no address at all
 (setting `addr=None`). **Both calls were wrong, and the project's own evidence
 settled it.** `state/outreach_evidence/blackhold__addr_page.txt` is a saved copy of
-BlackHold's *contacto* page and it carries `hola@blackholdgroup.com`;
+BlackHold's *contacto* page and it carries `<addr: BlackHold Group>`;
 `weventure__addr_page.txt` is a saved copy of WEVENTURE's *Datenschutz* page and it
-carries `info@weventure.de` ("Kontakt zum Verantwortlichen: WEVENTURE Performance
-GmbH, Bettina Wille, info@weventure.de"). I had checked one page each — BlackHold's
+carries `<addr: WEVENTURE>` ("Kontakt zum Verantwortlichen: WEVENTURE Performance
+GmbH, Bettina Wille, <addr: WEVENTURE>"). I had checked one page each — BlackHold's
 IA policy page, WEVENTURE's Impressum and Kontakt — and generalised from it. Both
 entries were reverted to verified, `tests/test_hook_provenance.py` — which exists
 precisely to catch an address that was not read off a page — is **20/20** again, and

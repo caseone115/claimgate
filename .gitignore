@@ -9,3 +9,11 @@ state/
 outreach_sent.jsonl
 
 outreach_suppress.txt
+
+# The revenue ledger is internal: it records prospect company names and, until
+# 2026-10-01, their email addresses. It stays on the build box. It was tracked in
+# a PUBLIC repository (and had been since 38d8d1e) and was inside the archive
+# sold for US$39; both were shipping nine live prospect addresses to anyone who
+# asked. The ledger itself is unchanged and still lives here.
+REVENUE.md
+REVENUE.md.bak-*
