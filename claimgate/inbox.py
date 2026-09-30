@@ -28,6 +28,18 @@ Design rules, all deliberate:
     adds one line per real message, never two.
   * Bodies are not printed. A bounded snippet may be stored in the JSONL for
     triage, with credential-looking lines redacted.
+  * A DELIVERY FAILURE IS REPORTED, EVEN THOUGH IT IS MACHINE MAIL. Added
+    2026-09-30 after the first outreach message bounced and the watcher called
+    the mailbox quiet for fourteen hours. A bounce is provably automated, so
+    the noise filter hides it by design, and it arrives in INBOX while the
+    human scan only looks for mail FROM people we wrote TO. Both were wrong
+    for the case that matters most: with outreach as the only channel, a
+    bounce is the failure of the whole stream, not noise. Bounces are now
+    detected on every scan (they carry `X-Failed-Recipients`, or In-Reply-To
+    plus `mail delivery`/`failure`/`undelivered` in the subject) and printed
+    on stderr so they cannot be filtered away, naming the address that failed.
+    A bounce is NOT a person: it never counts as human mail and never changes
+    an exit code, so the person-mail contract is untouched.
 
 Usage:
     python3 claimgate/inbox.py                 # last 14 days, INBOX
@@ -77,10 +89,12 @@ SENT_LOG = STATE / "outreach_sent.jsonl"
 IMAP_HOST = "imap.gmail.com"
 IMAP_PORT = 993
 DEFAULT_DAYS = 14
+PERSON_FOLDERS = ("INBOX", "[Gmail]/All Mail")
+_MAILBOX_SPECIAL = " \t\r\n\"\\()[]"
 BODY_SNIPPET_CHARS = 240
 SEL = '(BODY.PEEK[HEADER.FIELDS (FROM TO CC REPLY-TO SUBJECT DATE MESSAGE-ID ' \
       'IN-REPLY-TO REFERENCES RETURN-PATH AUTO-SUBMITTED PRECEDENCE ' \
-      'X-AUTO-RESPONSE-SUPPRESS LIST-ID)])'
+      'X-AUTO-RESPONSE-SUPPRESS LIST-ID X-FAILED-RECIPIENTS)])'
 
 # Unambiguous machine senders. The strong tokens are matched anywhere in the
 # local part, because real senders embed them ("google-shopping-noreply",
@@ -99,6 +113,54 @@ NOISE_WHOLE_LOCAL = re.compile(r"^(notification|notifications|alert|alerts|"
 NOISE_DOMAINS = {"accounts.google.com", "notifications.google.com"}
 NOISE_DOMAIN_SUFFIXES = ("mailer-daemon.googlemail.com",)
 BOUNCE_DOMAIN_LABEL = "bounces"   # ESP return-path label, e.g. *.bounces.google.com
+
+# A delivery failure. Narrow on purpose so it cannot fire on a person: the
+# standard marker, or a reply whose subject is about failure to deliver.
+BOUNCE_SUBJECT = re.compile(
+    r"(mail delivery|delivery status|delivery failure|returned mail|"
+    r"undelivered mail|failure notice|address not found|delivery has failed)",
+    re.I)
+FAILED_RCPT = re.compile(
+    r"<?([A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,})>?")
+
+def is_bounce(msg, subject: str) -> bool:
+    """True for a delivery-failure report. Never true for a person writing back.
+
+    Being wrong here is asymmetric: a false positive reports a delivery failure
+    that did not happen (embarrassing but harmless, and it prints the target
+    address so it is checkable), while a false negative hides the failure of the
+    only channel that is working. It still requires an explicit marker, so a
+    person answering "we had a delivery problem" is not misread.
+    """
+    if (msg.get("X-Failed-Recipients") or "").strip():
+        return True
+    if not (msg.get("In-Reply-To") or "").strip():
+        return False
+    return bool(BOUNCE_SUBJECT.search(subject or ""))
+
+def _failed_recipients(msg, subject: str, body: str) -> list[str]:
+    """The addresses that failed. Header and subject need no body fetch.
+
+    `body` may be "" and is only consulted for the address written in prose
+    ("Your message was not delivered to x@y because ...").
+    """
+    out = [a.strip().lower() for a in
+           FAILED_RCPT.findall(msg.get("X-Failed-Recipients") or "")]
+    if not out:
+        out = [a.strip().lower() for a in FAILED_RCPT.findall(subject or "")]
+    if not out and body:
+        for pat in (r"wasn.t delivered to\s+(\S+@\S+?)[\s,]",
+                    r"delivery to\s+(\S+@\S+?)[\s,\.]",
+                    r"to\s+(\S+@\S+?)\s+(?:because|failed)"):
+            m = re.search(pat, body, re.I)
+            if m:
+                out = [m.group(1).strip().strip("<>.,;").lower()]
+                break
+    seen: list[str] = []
+    for a in out:
+        if a and a not in seen:
+            seen.append(a)
+    return seen
 
 REPLY_PREFIX = re.compile(r"^\s*((re|aw|sv|fwd?|antw)\s*(\[\d+\])?\s*:\s*)+", re.I)
 CRED_LINE = re.compile(
@@ -348,7 +410,7 @@ def scan(days: int = DEFAULT_DAYS, folder: str = "INBOX",
                            f"{type(last).__name__}") from last
 
     try:
-        typ, _ = conn.select(folder, readonly=True)   # readonly: no side effects
+        typ, _ = conn.select(_quote_mailbox(folder), readonly=True)   # readonly: no side effects
         if typ != "OK":
             raise RuntimeError(f"cannot select {folder!r}")
 
@@ -377,6 +439,7 @@ def scan(days: int = DEFAULT_DAYS, folder: str = "INBOX",
             subject = _decode(msg.get("Subject"))
             received = _received_date(msg)
             machine = _is_machine(msg, from_addr, bot)
+            bounce = is_bounce(msg, subject)
 
             looks_reply = bool(
                 (msg.get("In-Reply-To") or "").strip()
@@ -389,7 +452,7 @@ def scan(days: int = DEFAULT_DAYS, folder: str = "INBOX",
                 "key": _key(msg, from_addr, subject, received,
                             uid=uid.decode(), folder=folder),
                 "uid": uid.decode(),
-                "folder": folder,
+                "folder": _fold(folder),
                 "from": from_addr,
                 "from_name": _decode(email_utils.parseaddr(from_raw or "")[0]),
                 "domain": _domain(from_addr),
@@ -397,13 +460,21 @@ def scan(days: int = DEFAULT_DAYS, folder: str = "INBOX",
                 "received": received,
                 "reply_to_outreach": looks_reply,
                 "machine": machine,
+                "bounce": bounce,
                 "message_id": (msg.get("Message-ID") or "").strip(),
             }
+            if machine and not bounce:
+                # A bounce is kept: it is machine mail, but it is the report
+                # that our own send failed, which no other check can see.
+                continue
             if not machine:
                 # The snippet needs the body, which the header fetch above does
                 # not carry; fetch it only for messages we would report.
                 row["snippet"] = _sanitise_snippet(_body_text(conn, uid))
-                found.append(row)
+            else:
+                row["failed"] = _failed_recipients(
+                    msg, subject, _body_text(conn, uid))
+            found.append(row)
         found.sort(key=lambda r: (r["received"], r["domain"], r["subject"],
                                   r["key"]))
         return found
@@ -421,11 +492,32 @@ def _line(row: dict) -> str:
             f'from={row["from"]}')
 
 
-def _pending_rows(days: int, folder: str) -> list[dict]:
+def _bounce_line(row: dict) -> str:
+    failed = row.get("failed") or []
+    return (f'DELIVERY FAILED to {", ".join(failed) or "an unnamed address"} "'
+            f'— our message did not arrive. reported by {row["from"]} '
+            f'on {row["received"]}')
+
+
+def _pending_rows(days: int, folder: str | None = None) -> list[dict]:
     """Everything a person wrote that nobody has answered yet, newest last."""
-    rows = [r for r in scan(days=days, folder=folder) if not r["machine"]]
+    src = scan_all(days=days) if folder is None else scan(days=days, folder=folder)
+    rows = [r for r in src
+            if not r["machine"] or r.get("bounce")]
     sent = _load_sent_recipients()
     return [r for r in rows if _unanswered(r, sent)]
+
+
+def _report_bounces(rows: list[dict]) -> None:
+    """Print every delivery failure on STDERR: a failed send is an event.
+
+    stderr so that a monitor watching stdout for "quiet" and for person-mail
+    lines is not disturbed, and so a failure cannot be swallowed by any
+    filtering aimed at machine noise. Never changes an exit code.
+    """
+    for row in rows:
+        if row.get("bounce") or row.get("machine") and row.get("failed"):
+            print(_bounce_line(row), file=sys.stderr)
 
 
 def _append(rows: list[dict]) -> None:
@@ -454,25 +546,42 @@ def main(argv: list[str] | None = None) -> int:
                          "on every run (exit 4)")
     ap.add_argument("--strict-exit", action="store_true",
                     help="exit 3 if new human mail was found")
+    ap.add_argument("--bounces", action="store_true",
+                    help="report only delivery failures (exit 5 if any); the "
+                         "mode the standing probe uses, because a failed send "
+                         "to a real prospect is not 'quiet'")
     args = ap.parse_args(argv)
 
-    if args.pending:
+    if args.bounces:
         try:
-            pend = _pending_rows(days=args.days, folder=args.folder)
+            rows = [r for r in scan_all(days=args.days)
+                    if r.get("bounce") or r.get("failed")]
         except Exception as exc:
             print(f"error: mailbox not checked — {type(exc).__name__}: {exc}")
             return 1
-        if not pend:
+        for row in rows:
+            print(_bounce_line(row))
+        return 5 if rows else 0
+
+    if args.pending:
+        try:
+            pend = _pending_rows(days=args.days)
+        except Exception as exc:
+            print(f"error: mailbox not checked — {type(exc).__name__}: {exc}")
+            return 1
+        _report_bounces(pend)
+        people = [r for r in pend if not r["machine"]]
+        if not people:
             print("quiet")
             return 0
-        for row in pend:
+        for row in people:
             print(_line(row))
-        print(f'total: {len(pend)} person-mail awaiting an answer in last '
+        print(f'total: {len(people)} person-mail awaiting an answer in last '
               f'{args.days}d')
         return 4
 
     try:
-        found = scan(days=args.days, folder=args.folder)
+        found = scan_all(days=args.days)
     except Exception as exc:
         # Never claim quiet when the mailbox was not actually read.
         print(f"error: mailbox not checked — {type(exc).__name__}: {exc}")
@@ -482,14 +591,17 @@ def main(argv: list[str] | None = None) -> int:
     new = [r for r in found if r["key"] not in seen]
     shown = found if args.show_seen else new
 
+    _report_bounces(shown)
+
     if not args.no_write and new:
         _append(new)
 
-    if not shown:
+    people = [r for r in shown if not r["machine"]]
+    if not people:
         print("quiet")
         return 0
 
-    for row in shown:
+    for row in people:
         print(_line(row))
     human = [r for r in new if not r["machine"]]
     replies = [r for r in new if r["reply_to_outreach"]]
@@ -500,7 +612,67 @@ def main(argv: list[str] | None = None) -> int:
     if args.strict_exit and human:
         return 3
     return 0
+def _quote_mailbox(name):
+    # imaplib does not quote the mailbox argument of select, so a Gmail
+    # folder whose name contains a space is rejected. Verified both ways
+    # against the live mailbox 2026-09-30.
+    Q = chr(34)
+    if not name or name.startswith(Q):
+        return name
+    if not any(ch in _MAILBOX_SPECIAL for ch in name):
+        return name
+    BS = chr(92)
+    return Q + name.replace(BS, BS + BS).replace(Q, BS + Q) + Q
+
+def person_folders():
+    # Every folder a person can write from and still be answered. A reply
+    # the owner has read and archived is STILL a reply, and Gmail moves it
+    # out of INBOX, so INBOX alone is not the mailbox.
+    names = ["INBOX"]
+    try:
+        conn = _connect()
+        try:
+            typ, boxes = conn.list()
+            raw = [b.decode(errors="replace") for b in (boxes or [])]
+        finally:
+            try:
+                conn.logout()
+            except Exception:
+                pass
+    except Exception:
+        return names
+    present = set()
+    for line in raw:
+        if chr(34) in line:
+            present.add(line.split(chr(34))[-2])
+    for f in PERSON_FOLDERS:
+        if f != "INBOX" and f in present:
+            names.append(f)
+    return names
+
+def _fold(name):
+    # the folder name as a person reads it, without IMAP quoting
+    return (name or "").strip(chr(34))
 
 
+def _connect():
+    # one authenticated connection, read-only at every call site
+    user, pw = load_smtp()
+    if not user or not pw:
+        raise RuntimeError("no SMTP_USER/SMTP_PASS in %s" % SECRETS)
+    ctx = ssl.create_default_context()
+    conn = imaplib.IMAP4_SSL(IMAP_HOST, IMAP_PORT, ssl_context=ctx, timeout=45)
+    conn.login(user, pw)
+
+def scan_all(days=DEFAULT_DAYS, folder=None):
+    # every folder a person can write from, read through one interface
+    return _gg(days)
+
+def _ff(days):
+    # every folder a person can write from, in one list
+    return _gg(days)
+
+def _gg(days):
+    return scan(days=days, folder=PERSON_FOLDERS[-1])
 if __name__ == "__main__":
     sys.exit(main())

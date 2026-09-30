@@ -27,7 +27,8 @@ echo "site:$site_code repo:$repo_code"
 # --- 2. tests
 if [ -x ".venv/bin/python" ]; then PY=".venv/bin/python"; else PY="python3"; fi
 tests_ok=1
-for t in tests/test_claimgate.py tests/test_outreach.py tests/test_kit.py; do
+for t in tests/test_claimgate.py tests/test_outreach.py tests/test_kit.py \
+         tests/test_hook_provenance.py; do
   test_out="$($PY "$t" 2>&1 | tail -1)"
   case "$test_out" in
     *"behaved as intended"*) echo "tests[$(basename "$t")]: $test_out" ;;
@@ -53,6 +54,17 @@ elif [ -f "$INBOX" ]; then
 else
   echo "inbox: no watcher and nothing recorded"
 fi
+
+# --- 4b. did our own outreach actually arrive? A bounce is machine mail, so the
+# watcher hides it from the person-mail report by design; without this line a
+# failed send read exactly like a quiet mailbox, which is how the first bounce
+# (info@frankcaremarketing.com, 2026-09-29) went unseen for fourteen hours.
+out_out="$($PY -m claimgate.inbox --days 14 --bounces 2>&1)"; out_rc=$?
+case "$out_rc" in
+  0) echo "outreach-delivery: ok - no delivery failure in 14d" ;;
+  5) echo "outreach-delivery: FAILED - $(echo "$out_out" | tr '\n' ' ')" ;;
+  *) echo "outreach-delivery: NOT CHECKED - $(echo "$out_out" | tr '\n' ' ')" ;;
+esac
 
 # --- 5. surfaces
 echo "outreach: $(python3 claimgate/outreach.py 2>/dev/null | head -1 || echo 'outreach: unavailable')"

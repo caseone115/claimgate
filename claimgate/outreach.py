@@ -106,6 +106,25 @@ def recent(within_hours: int = 24) -> list[dict]:
     return out
 
 
+SELFTEST_MARKER = "self-test"
+
+
+def is_selftest(row: dict) -> bool:
+    """True for the transport self-test, which is sent to our own mailbox.
+
+    This exists because a test message must not cost a prospect their slot.
+    On 2026-09-30 the self-test row was the one holding the rolling 24h count
+    at 3/3, so the queue waited ten hours for a slot that had been spent on
+    ourselves, and the queue files recorded the wrong reason for the wait.
+    """
+    return SELFTEST_MARKER in (row.get("note") or "").lower()
+
+
+def countable(rows: list[dict]) -> list[dict]:
+    """The rows that consume a daily slot: real outreach, not our own test."""
+    return [r for r in rows if not is_selftest(r)]
+
+
 class Refused(Exception):
     """The send was not allowed. Not retryable without changing the inputs."""
 
@@ -130,7 +149,7 @@ def check(to: str, body: str, hook: str, *, force: bool = False) -> None:
     if any(r.get("to", "").lower() == addr for r in history()):
         raise Refused(f"{addr} has already been contacted — never twice")
 
-    today = recent(24)
+    today = countable(recent(24))
     if len(today) >= MAX_PER_DAY:
         raise Refused(
             f"daily limit reached ({len(today)}/{MAX_PER_DAY} in the last 24h)")
@@ -165,6 +184,26 @@ def check(to: str, body: str, hook: str, *, force: bool = False) -> None:
             "automated system must say so")
 
 
+_WALL_CLOCK = datetime.now(timezone.utc)
+
+
+def _clock_is_real() -> bool:
+    """True while `_now()` still agrees with the wall clock.
+
+    The rehearsal harnesses patch `_now` forward to a window where the cap is
+    open, so a queue can be exercised before a slot exists. That is exactly the
+    right way to test the guard, and exactly the wrong way to send: on
+    2026-09-30 a harness did both at once and three real messages were recorded
+    with a send time of 2026-10-01T06:00Z, a day and a half in the future, so
+    every figure derived from the log was wrong. Checking on a faked clock
+    stays allowed; *sending* on one does not.
+    """
+    try:
+        return abs((_now() - datetime.now(timezone.utc)).total_seconds()) < 60
+    except Exception:  # noqa: BLE001
+        return False
+
+
 def record(to: str, subject: str, body: str, hook: str = "",
            note: str = "") -> None:
     """Append the send to the permanent log. Called BEFORE the send."""
@@ -184,7 +223,18 @@ def record(to: str, subject: str, body: str, hook: str = "",
 
 def send(to: str, subject: str, body: str, hook: str, note: str = "",
          force: bool = False) -> dict:
-    """Check, record, send — in that order, so nothing sends unrecorded."""
+    """Check, record, send — in that order, so nothing sends unrecorded.
+
+    The clock check comes first: a message sent while `_now()` is patched away
+    from the wall clock would be logged under a fictional time forever, and the
+    24h cap is derived from those times.
+    """
+    if not force and not _clock_is_real():
+        raise Refused(
+            "refusing to send on a patched clock: _now() disagrees with the "
+            "wall clock, so the send time written to the log would be "
+            "fictional and the rolling 24h cap wrong. Rehearse on a faked "
+            "clock with check(); send on the real one.")
     check(to, body, hook, force=force)
     user, pw = load_smtp()
     if not user or not pw:
@@ -208,8 +258,10 @@ def send(to: str, subject: str, body: str, hook: str, note: str = "",
 
 def status() -> str:
     h = history()
-    t = recent(24)
-    return (f"outreach: all-time {len(h)}, last 24h {len(t)}/{MAX_PER_DAY}, "
+    t = countable(recent(24))
+    st = [r for r in h if is_selftest(r)]
+    return (f"outreach: all-time {len(h)} ({len(st)} self-test), "
+            f"last 24h {len(t)}/{MAX_PER_DAY} against real recipients, "
             f"suppressed {len(suppressed())}, "
             f"kill switch {'ON' if KILL.exists() else 'off'}")
 

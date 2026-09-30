@@ -186,6 +186,103 @@ with mock.patch.object(inbox, "scan", return_value=[
 ok("--pending goes quiet once answered", rc == 0 and
    "".join(out).strip() == "quiet", "".join(out))
 
+
+print("\n=== a delivery failure is loud, and a person is still a person ===\n")
+
+# The real bounce, header for header (state/_real_bounce_20260929.txt): the
+# first outreach message was reported quiet for 14 hours because the watcher
+# filters machine mail and never searched for a failure report. Both are now
+# pinned here.
+REAL = {
+    "From": "Mail Delivery Subsystem <mailer-daemon@googlemail.com>",
+    "Subject": "Delivery Status Notification (Failure)",
+    "Date": "Tue, 29 Sep 2026 07:04:19 -0700",
+    "In-Reply-To": "<6abbc560.16cd2a3c.1350e8.e2e4@mx.google.com>",
+    "Return-Path": "<>",
+    "Auto-Submitted": "auto-replied",
+    "X-Failed-Recipients": "info@frankcaremarketing.com",
+}
+b = msg(REAL)
+ok("the real bounce is detected", inbox.is_bounce(b, REAL["Subject"]))
+ok("the real bounce is still machine mail (never counted as a person)",
+   inbox._is_machine(b, "mailer-daemon@googlemail.com", BOT))
+ok("the failed address is read off the header, without a body fetch",
+   inbox._failed_recipients(b, REAL["Subject"], "") ==
+   ["info@frankcaremarketing.com"])
+
+# and it survives the exact header fetch the watcher performs
+FETCHED = msg(REAL)          # headers only; scan() reads headers first
+ok("bounce detected from the fetched headers alone",
+   inbox.is_bounce(FETCHED, FETCHED.get("Subject")))
+
+# the marker is what makes it a bounce, not the sender name
+NOPROOF = {"From": "Mail Delivery Subsystem <mailer-daemon@googlemail.com>",
+           "Subject": "Delivery Status Notification (Failure)"}
+ok("mailer-daemon alone is not a bounce (it must carry the marker)",
+   not inbox.is_bounce(msg(NOPROOF), NOPROOF["Subject"]))
+
+# an address written in prose, for servers that omit the header
+PROSE = msg({"From": "Mail Delivery Subsystem <mailer-daemon@googlemail.com>",
+             "Subject": "Delivery Status Notification (Failure)",
+             "In-Reply-To": "<x@y>"})
+ok("the failed address is found in the prose when no header carries it",
+   inbox._failed_recipients(
+       PROSE, PROSE["Subject"],
+       "Your message wasn't delivered to info@frankcaremarketing.com because "
+       "the address couldn't be found") == ["info@frankcaremarketing.com"])
+
+# nothing about a person may look like a bounce
+for hdrs, subject in (
+        ({"From": "David <david@frankcaremarketing.com>",
+          "Subject": "Re: your note about our AI policy",
+          "In-Reply-To": "<6abbc560@mx.google.com>"}, None),
+        ({"From": "Jane <jane@brightlabs.co>",
+          "Subject": "we had a delivery problem last week, apologies",
+          "In-Reply-To": "<x@y>"}, None),
+        ({"From": "info@smallagency.com", "Subject": "failure notice of our own"},
+         None)):
+    m = msg(hdrs)
+    ok("not a bounce: %r" % hdrs["Subject"][:44],
+       not inbox.is_bounce(m, subject or hdrs.get("Subject")))
+
+print("\n=== the standing probe sees a bounce, and stays quiet without one ===\n")
+
+with mock.patch.object(inbox, "scan", return_value=[
+        {"from": "mailer-daemon@googlemail.com", "domain": "googlemail.com",
+         "subject": "Delivery Status Notification (Failure)",
+         "received": "2026-09-29", "reply_to_outreach": True, "machine": True,
+         "bounce": True, "failed": ["info@frankcaremarketing.com"]}]):
+    out = []
+    with mock.patch("sys.stdout") as so:
+        so.write = lambda s: out.append(s)
+        rc = inbox.main(["--days", "14", "--bounces"])
+text = "".join(out)
+ok("--bounces exits 5 when a send failed", rc == 5, f"rc={rc}")
+ok("--bounces names the address that failed",
+   "info@frankcaremarketing.com" in text, text)
+ok("--bounces does not say 'quiet'", "quiet" not in text, text)
+
+with mock.patch.object(inbox, "scan", return_value=[]):
+    out = []
+    with mock.patch("sys.stdout") as so:
+        so.write = lambda s: out.append(s)
+        rc = inbox.main(["--days", "14", "--bounces"])
+ok("--bounces exits 0 with no failures", rc == 0, f"rc={rc}")
+
+# a failure report must not be counted as a person waiting for an answer
+with mock.patch.object(inbox, "scan", return_value=[
+        {"from": "mailer-daemon@googlemail.com", "domain": "googlemail.com",
+         "subject": "Delivery Status Notification (Failure)",
+         "received": "2026-09-29", "reply_to_outreach": True, "machine": True,
+         "bounce": True, "failed": ["info@frankcaremarketing.com"]}]):
+    with mock.patch.object(inbox, "_load_sent_recipients", return_value=[]):
+        out = []
+        with mock.patch("sys.stdout") as so:
+            so.write = lambda s: out.append(s)
+            rc = inbox.main(["--days", "14", "--pending"])
+ok("a bounce is not reported as a person awaiting an answer",
+   rc == 0 and "".join(out).strip() == "quiet", "".join(out))
+
 print("\n=== empty result prints the exact word a monitor looks for ===\n")
 with mock.patch.object(inbox, "scan", return_value=[]):
     with mock.patch.object(inbox, "_seen_keys", return_value=set()):

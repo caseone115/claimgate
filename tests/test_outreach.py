@@ -1,16 +1,16 @@
-"""Tests for the outreach guardrails, including one real end-to-end send.
+"""Tests for the outreach guardrails. The default run sends NOTHING.
 
 The permission to email real prospects is only safe if the limits are enforced
 by code. This suite attacks its own guardrails: every rule gets a test that
 tries to break it, because a limit that has never been tested is a limit that
 will fail on the day it matters.
 
-It ends with a genuine SMTP send of a marked test message, so the send path
-itself is proven rather than assumed. A `--no-send` flag skips only that final
-step.
+Every send path here is mocked. A genuine SMTP send happens only when it is
+asked for explicitly, because the standing probe runs this suite on every cron
+tick and a default-on real send is exactly what flooded the mailbox:
 
-    python tests/test_outreach.py            # full, includes one real send
-    python tests/test_outreach.py --no-send  # guardrails only
+    python tests/test_outreach.py           # guardrails only, no network
+    python tests/test_outreach.py --send    # also prove the transport, once
 """
 from __future__ import annotations
 
@@ -60,7 +60,12 @@ def refused(name: str, fn) -> None:
 
 
 def main() -> int:
-    send_it = "--no-send" not in sys.argv
+    # A real send happens ONLY when explicitly requested with --send. The
+    # default must never touch the network: this suite is run by the standing
+    # probe on every cron tick, and an earlier default-on real send is what
+    # produced 33 bounce messages and 43 test messages to this mailbox.
+    send_it = "--send" in sys.argv
+
 
     with tempfile.TemporaryDirectory() as d:
         tmp = Path(d)
@@ -135,6 +140,29 @@ def main() -> int:
            len(outreach.recent(24)) == outreach.MAX_PER_DAY,
            str(len(outreach.recent(24))))
 
+        print("\n=== the transport self-test does not eat a prospect's slot ===\n")
+        outreach.SENT.write_text("")
+        outreach.record("probe@example.com", "transport check", BODY, hook=HOOK,
+                        note="self-test transport check")
+        try:
+            outreach.check("real@prospect.com", BODY, HOOK)
+            ok("a self-test row does not consume one of the three daily slots",
+               True)
+        except outreach.Refused as e:
+            ok("a self-test row does not consume one of the three daily slots",
+               False, str(e))
+        ok("the self-test row is still counted in the log itself",
+           len(outreach.recent(24)) == 1,
+           str(len(outreach.recent(24))))
+        for i in range(outreach.MAX_PER_DAY):
+            outreach.record(f"r{i}@d{i}.com", "hi", BODY, hook=HOOK,
+                            note="hand-written")
+        refused("three real sends still close the cap", 
+                lambda: outreach.check("new@fresh.com", BODY, HOOK))
+        ok("and the cap counts the real sends, not the self-test",
+           len(outreach.countable(outreach.recent(24))) == outreach.MAX_PER_DAY,
+           str(len(outreach.countable(outreach.recent(24)))))
+
         print("\n=== one message per company per day ===\n")
         outreach.SENT.write_text("")
         outreach.record("first@bigcorp.com", "hi", BODY, hook=HOOK)
@@ -161,6 +189,36 @@ def main() -> int:
         ok("a send that failed still left a record, so it cannot retry blindly",
            len(logged) == 1, f"log entries: {len(logged)}")
 
+        print("\n=== a real send is impossible on a patched clock ===\n")
+        outreach.SENT.write_text("")
+        import datetime as _dt
+        real_now = outreach._now
+        outreach._now = lambda: _dt.datetime(2026, 10, 1, 6, 0, 0,
+                                             tzinfo=_dt.timezone.utc)
+        refused("a send on a faked clock is refused outright",
+                lambda: outreach.send("clock@example.com", "s", BODY, HOOK))
+        ok("and it wrote nothing to the log",
+           outreach.history() == [], str(len(outreach.history())))
+        # the same faked clock must still allow a *check* — that is the whole
+        # point of the rehearsal harness
+        try:
+            outreach.check("clock@example.com", BODY, HOOK)
+            ok("a check on a faked clock is still allowed (rehearsal works)",
+               True)
+        except outreach.Refused as e:
+            ok("a check on a faked clock is still allowed (rehearsal works)",
+               False, str(e))
+        outreach._now = real_now
+        # Do NOT send here. Restoring the real clock and then calling
+        # `outreach.send(...)` for real is a live SMTP send, and the address
+        # below is reserved — it cannot receive mail, so every run generated a
+        # Mail Delivery Subsystem bounce in the inbox that has to receive real
+        # prospect replies. 33 arrived in one day. The point of this check is
+        # that the clock was restored, which needs no network at all.
+        ok("with the clock restored the send path is reachable again",
+           callable(outreach.send) and outreach._clock_is_real(),
+           "clock no longer agrees with the wall clock")
+
         print("\n=== status reporting ===\n")
         outreach.SENT.write_text("")
         outreach.record("a@b.com", "s", BODY, hook=HOOK)
@@ -168,6 +226,27 @@ def main() -> int:
         ok("status reports the real counts", "all-time 1" in s, s)
 
     # ---------------------------------------------------------------- real send
+    # OFF BY DEFAULT, and it must stay that way.
+    #
+    # This block used to run on every invocation, and `daily_probe.sh` invokes
+    # this suite on every cron tick. That produced:
+    #
+    #   * 33 Mail Delivery Subsystem "Delivery Status Notification (Failure)"
+    #     bounces in the bot inbox in a single day, because the block above ends
+    #     by restoring the real clock and then calling
+    #     `outreach.send("clock@example.com", ...)` unmocked — `example.com` is
+    #     reserved and cannot receive mail, so every run generated a bounce;
+    #   * a second "[TEST] ClaimGate outreach transport check" to its own inbox
+    #     on every tick, because the "already proven" guard below reads
+    #     `outreach.history()` — and the line a few above this one clears the
+    #     sent log, so the guard could never be satisfied.
+    #
+    # The transport is proven once, deliberately, by a human or by a single
+    # explicit run. Proving it 48 times a day is not proof, it is spam — and it
+    # was spam sent from the account that also has to receive real prospect
+    # replies.
+    #
+    #   python tests/test_outreach.py --send   # prove the transport, on purpose
     if send_it:
         print("\n=== a real end-to-end send ===\n")
         real_state = Path.home() / "claimgate" / "state"
