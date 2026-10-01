@@ -283,6 +283,96 @@ with mock.patch.object(inbox, "scan", return_value=[
 ok("a bounce is not reported as a person awaiting an answer",
    rc == 0 and "".join(out).strip() == "quiet", "".join(out))
 
+print("\n=== a quoted Precedence is still a machine, and the verifier is not a person ===\n")
+# Found on the live mailbox 2026-10-01: five of the eight "person-mail awaiting an
+# answer" were our OWN deliverability probes. Port25's verifier replies with
+# `Precedence: junk (auto_reply)` - a QUALIFIED value - and the rule below compared
+# Precedence by exact equality against "junk", so it matched nothing. The report
+# also carries In-Reply-To (it answers our probe), which made it look like a reply
+# to outreach. The watcher therefore spent every pass reporting five robots as
+# customers waiting on us, which is how a watcher trains its reader to ignore it.
+# The header values here are quoted from the real message, not invented.
+QUALIFIED_MACHINES = [
+    # the real Port25 authentication report, every header it actually sent
+    {"From": "auth-results@verifier.port25.com",
+     "Subject": "Authentication Report",
+     "To": BOT,
+     "In-Reply-To": "<6abdc17a.503aeb51.3ad9f4.0ddd@mx.google.com>",
+     "Precedence": "junk (auto_reply)"},
+    {"From": "robot@x.co", "Subject": "auto", "Precedence": "junk (auto_reply)"},
+    {"From": "robot@x.co", "Subject": "auto", "Precedence": "bulk (marketing)"},
+    {"From": "robot@x.co", "Subject": "auto", "Precedence": "list; owner=ops@x.co"},
+    {"From": "robot@x.co", "Subject": "auto", "Precedence": "JUNK"},
+    {"From": "robot@x.co", "Subject": "auto",
+     "Auto-Submitted": "auto-generated (no response expected)"},
+    {"From": "robot@x.co", "Subject": "auto",
+     "Precedence": "junk (auto_reply)", "Auto-Submitted": "auto-replied"},
+]
+for headers in QUALIFIED_MACHINES:
+    m = msg(headers)
+    addr = inbox._addr(m.get("From"))
+    ok(f"machine (qualified): {headers.get('Precedence') or headers.get('Auto-Submitted')}",
+       inbox._is_machine(m, addr, BOT),
+       "a qualified Precedence must still read as machine, or our own probes "
+       "are reported as customers")
+
+# And the other direction, which is the one that costs money if it breaks: a
+# person's real mail must never be swept up by the widened rule.
+for headers in [
+    {"From": "jane@brightlabs.co", "Subject": "Re: ClaimGate",
+     "Precedence": "junk free, do you do this for agencies"},
+    {"From": "info@smallagency.com", "Subject": "question"},
+    {"From": "hello@startup.io", "Subject": "Re: your note"},
+]:
+    m = msg(headers)
+    ok(f"still human: {headers['From']}", not inbox._is_machine(
+        m, inbox._addr(m.get("From")), BOT))
+
+print("\n=== the folder list is the mailbox, and it fails loudly if it cannot be read ===\n")
+# person_folders() calls _connect(), which built a connection and returned None,
+# so the `conn = _connect()` line raised AttributeError on every call - swallowed
+# by a bare try/except that returns ["INBOX"]. The Spam folder was committed to
+# the folder list and could never appear in it, and the fallback was silent.
+class _FakeList:
+    def __init__(self):
+        self.selected = []
+    def list(self):
+        return ("OK", [b'(\\HasNoChildren) "/" "INBOX"',
+                       b'(\\HasNoChildren) "/" "[Gmail]/All Mail"',
+                       b'(\\HasNoChildren) "/" "[Gmail]/Spam"'])
+    def logout(self):
+        self.selected.append("logout")
+
+def _fake_connect_factory(sink):
+    def _c():
+        c = _FakeList()
+        sink.append(c)
+        return c
+    return _c
+
+sink = []
+with mock.patch.object(inbox, "_connect", _fake_connect_factory(sink)):
+    folders = inbox.person_folders()
+ok("every folder a person can write from is read",
+   set(folders) == {"INBOX", "[Gmail]/All Mail", "[Gmail]/Spam"}, str(folders))
+ok("the connection is closed after listing",
+   all("logout" in c.selected for c in sink) and bool(sink), str(sink))
+
+# _connect itself must hand back a usable connection and log out on failure.
+class _FakeImap:
+    def __init__(self, *a, **k):
+        self.logged_out = False
+    def login(self, u, p):
+        return ("OK", [b"ok"])
+    def logout(self):
+        self.logged_out = True
+
+with mock.patch.object(inbox.imaplib, "IMAP4_SSL", _FakeImap):
+    with mock.patch.object(inbox, "load_smtp", return_value=("a@b.co", "pw")):
+        conn = inbox._connect()
+ok("_connect returns the logged-in connection, not None", conn is not None,
+   f"got {conn!r} - a bare AttributeError here is swallowed into a silent INBOX-only read")
+
 print("\n=== empty result prints the exact word a monitor looks for ===\n")
 with mock.patch.object(inbox, "scan", return_value=[]):
     with mock.patch.object(inbox, "_seen_keys", return_value=set()):

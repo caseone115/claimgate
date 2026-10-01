@@ -193,6 +193,24 @@ def _domain(addr: str) -> str:
     return addr.rsplit("@", 1)[-1].lower() if "@" in addr else ""
 
 
+def _precedence_is_automated(value: str | None) -> bool:
+    """True for the RFC 2076 auto-response Precedence keywords.
+
+    Only the first token is read, because senders append a parameter to it
+    (`junk (auto_reply)`); only an exact keyword from that fixed three-word list
+    counts, so a person whose mail happens to carry the word later in the line
+    is still a person. Fails open, like everything else here.
+    """
+    head = (value or "").strip().lower()
+    # RFC 2076 parameters are parenthesised or semicolon-delimited, so cut them
+    # off and read what is left WHOLE. Splitting on whitespace instead would
+    # make a person's stray "junk free, do you do this for agencies" read as
+    # machine, and a missed buyer is the one error this file must not make.
+    for sep in ("(", ";"):
+        head = head.split(sep, 1)[0]
+    return head.strip() in ("bulk", "list", "junk")
+
+
 def _norm_subject(value: str) -> str:
     return " ".join(REPLY_PREFIX.sub("", value or "").lower().split())
 
@@ -279,7 +297,14 @@ def _is_machine(msg, from_addr: str, bot: str) -> bool:
     auto = (msg.get("Auto-Submitted") or "").strip().lower()
     if auto and not auto.startswith("no"):
         return True
-    if (msg.get("Precedence") or "").strip().lower() in ("bulk", "list", "junk"):
+    # `Precedence: junk (auto_reply)` is the RFC 2076 keyword followed by a
+    # free-text parameter, and real auto-responders send it that way: Port25's
+    # own verifier report - the mail THIS project's probes trigger - carries
+    # exactly that value. Comparing the whole header for equality against
+    # "junk" matched nothing, so five of our own robots were counted as
+    # customers awaiting an answer on every pass. The keyword is the first
+    # token, so that is what is tested.
+    if _precedence_is_automated(msg.get("Precedence")):
         return True
     # A null return-path is a bounce or a forged sender, never a human typing.
     if (msg.get("Return-Path") or "").strip() == "<>":
@@ -628,7 +653,11 @@ def person_folders():
     # Every folder a person can write from and still be answered. A reply
     # the owner has read and archived is STILL a reply, and Gmail moves it
     # out of INBOX, so INBOX alone is not the mailbox.
-    names = ["INBOX"]
+    #
+    # A failed listing returns just ["INBOX"] so the caller still has a mailbox
+    # to read, but it does NOT pretend that is the whole mailbox: the reason is
+    # logged, because a partial list reported as a complete one is the same
+    # fault as a scan that never happened printed as "quiet".
     try:
         conn = _connect()
         try:
@@ -639,8 +668,13 @@ def person_folders():
                 conn.logout()
             except Exception:
                 pass
-    except Exception:
-        return names
+        if typ != "OK":
+            raise RuntimeError("LIST returned %r" % (typ,))
+    except Exception as exc:
+        print("note: only INBOX could be read - folder listing failed "
+              "(%s: %s)" % (type(exc).__name__, exc), file=sys.stderr)
+        return ["INBOX"]
+    names = ["INBOX"]
     present = set()
     for line in raw:
         if chr(34) in line:
@@ -656,13 +690,28 @@ def _fold(name):
 
 
 def _connect():
-    # one authenticated connection, read-only at every call site
+    # one authenticated connection, read-only at every call site.
+    # It returns the connection. It used to build one and return None, so the
+    # one caller in person_folders() raised AttributeError on every call - and a
+    # bare `except: return ["INBOX"]` around it turned that into a folder list
+    # that silently never contained the folders it exists to find. The Spam
+    # folder was added to PERSON_FOLDERS and could never appear in the answer.
     user, pw = load_smtp()
     if not user or not pw:
         raise RuntimeError("no SMTP_USER/SMTP_PASS in %s" % SECRETS)
     ctx = ssl.create_default_context()
     conn = imaplib.IMAP4_SSL(IMAP_HOST, IMAP_PORT, ssl_context=ctx, timeout=45)
-    conn.login(user, pw)
+    try:
+        conn.login(user, pw)
+    except Exception:
+        # never leak a half-open connection: a TLS socket left behind is how a
+        # mailbox stops being readable an hour later with nothing to show why.
+        try:
+            conn.logout()
+        except Exception:
+            pass
+        raise
+    return conn
 
 def scan_all(days=DEFAULT_DAYS, folder=None):
     # every folder a person can write from, read through one interface
