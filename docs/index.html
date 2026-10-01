@@ -91,6 +91,8 @@
   .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px}
   .card h3{margin:0 0 10px;font-size:17px;letter-spacing:-.01em}
   .card p{margin:0;color:var(--muted);font-size:14.8px}
+  .card .src{margin:10px 0 0;color:var(--dim);font-size:12.4px;line-height:1.5}
+  .card .src a{color:var(--dim);text-decoration:underline}
   .card .ico{font-size:20px;margin-bottom:12px;display:block}
 
   .price{position:relative;display:flex;flex-direction:column}
@@ -234,24 +236,42 @@
     </p>
     <div class="grid g3">
       <div class="card">
-        <span class="ico">📉</span>
-        <h3>12,842</h3>
-        <p>AI-generated articles removed for hallucinated content in a single
-        quarter. Hallucination-driven takedowns are routine, not rare.</p>
-      </div>
-      <div class="card">
-        <span class="ico">🧑‍⚖️</span>
-        <h3>76% of enterprises</h3>
-        <p>now require human review before AI creative publishes — but reviewing
-        at AI volume is precisely what does not scale.</p>
+        <span class="ico">📄</span>
+        <h3>2 Aug 2026</h3>
+        <p>Article 50 transparency obligations apply. AI-generated content must
+        be disclosed in defined circumstances — and by 2 December 2026 the
+        machine-readable marking duty in Article 50(2) applies too.</p>
+        <p class="src">Regulation (EU) 2024/1689, Art. 50 and Art. 113;
+        <a href="https://digital-strategy.ec.europa.eu/en/policies/guidelines-ai-transparency-obligations">European Commission transparency guidelines</a>.</p>
       </div>
       <div class="card">
         <span class="ico">⚖️</span>
-        <h3>2 Aug 2026</h3>
-        <p>EU AI Act Article 50 transparency obligations applied. AI-generated
-        content must be disclosed in defined circumstances.</p>
+        <h3>69–88%</h3>
+        <p>hallucination rate on specific legal queries, across the
+        state-of-the-art models the study tested — and the models did not know
+        they were wrong.</p>
+        <p class="src">Dahl, Magesh, Suzgun &amp; Ho, <em>Hallucinating Law</em>,
+        Stanford RegLab &amp; HAI, Jan 2024; 200,000+ queries per model.
+        <a href="https://hai.stanford.edu/news/hallucinating-law-legal-mistakes-large-language-models-are-pervasive">stanford.edu</a>.</p>
+      </div>
+      <div class="card">
+        <span class="ico">💰</span>
+        <h3>$492M → $1B+</h3>
+        <p>forecast spend on AI governance platforms, 2026 → 2030. The budget to
+        keep this in order already exists.</p>
+        <p class="src">Gartner press release, 17 Feb 2026 (<em>Global AI Regulations
+        Fuel Billion-Dollar Market for AI Governance Platforms</em>). Gartner&#39;s own
+        pages block automated readers, so this links to
+        <a href="https://www.techtarget.com/ai/tip/Why-AI-governance-and-data-privacy-must-be-integrated">a
+        page that reproduces the figure with the release named</a> &mdash; the primary
+        document is findable by its title and date.</p>
       </div>
     </div>
+    <p class="sub" style="margin:26px 0 0;max-width:780px;font-size:15px">
+      Every figure on this page carries the document it came from. That is the
+      rule this product enforces on your copy, so it applies to this page first
+      — and a figure with no source is the exact failure mode it exists to stop.
+    </p>
     <div class="grid g2" style="margin-top:26px">
       <div class="card">
         <h3>Detectors answer the wrong question</h3>
