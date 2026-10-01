@@ -9,7 +9,7 @@ messages ends with the same call to action - *"reply with one draft ... and I wi
 run it and send back the report"* - and those replies carry none of that marker.
 There is no subject marker an outreach reply could carry: it is whatever the
 recipient's mail client produces from our subject ("Re: A free claim-accuracy
-check on one piece of ZORC copy (EU AI Act Art. 50)").
+check on one piece of <company> copy (EU AI Act Art. 50)").
 
 So the only channel in this business that can produce a sale was, in code,
 write-only. `inbox.py` marks such a message `reply_to_outreach: true` and prints
@@ -398,6 +398,31 @@ def main(argv=None):
     return 0
 
 
+
+def _real_subject_for(addr):
+    """The subject we really wrote to `addr`, read out of the sent log.
+
+    Kept out of this file on purpose. This repository is public and the recipients
+    in that log are real companies; the project's own standard is that a real
+    prospect's details live in `state/` (gitignored), never here. A fresh clone has
+    no log, so there is a synthetic fallback that still exercises the rule.
+    """
+    fallback = ("Re: A free claim-accuracy check on one piece of your copy "
+                "(EU AI Act Art. 50)")
+    if not SENT_LOG.exists():
+        return fallback
+    for line in SENT_LOG.read_text().splitlines():
+        try:
+            row = json.loads(line)
+        except ValueError:
+            continue
+        if (row.get("to") or "").strip().lower() == (addr or "").lower():
+            subj = (row.get("subject") or "").strip()
+            if subj:
+                return subj if subj.lower().startswith("re:") else "Re: " + subj
+    return fallback
+
+
 def _mail(subject, frm, body, date="", mid=None):
     m = email.message.EmailMessage()
     m["Subject"] = subject
@@ -429,10 +454,8 @@ def fixtures():
     # time we really wrote to them. The reserved fallback keeps the fixtures
     # meaningful in a fresh clone with no state/ directory.
     log = sent_targets()
-    ZORC = next((a for a in sorted(log) if a.endswith("@zorc.se")),
-                "recipient@example.org")
-    REAL_SUBJECT = ("Re: A free claim-accuracy check on one piece of ZORC copy "
-                    "(EU AI Act Art. 50)")
+    WHO = next(iter(sorted(log)), "recipient@example.org")
+    REAL_SUBJECT = _real_subject_for(WHO)
     REAL_BODY = ("Here is a campaign page we are least confident about. We cut "
                  "onboarding time by 40% for three clients.\n\n"
                  "On Tue, ClaimGate wrote:\n> Hello from ClaimGate. This message "
@@ -442,15 +465,17 @@ def fixtures():
     # the date rules were skipped entirely and the "too old" case passed as a
     # failure. The shape matters as much as the value.
     later = "Fri, 02 Oct 2026 09:00:00 +0000"
-    earlier = "2026-09-30T06:03:31+00:00"     # the real send time of ZORC's message
-    earlier = log.get(ZORC, earlier)        # the real send time, if we have it
-    targets = {ZORC: earlier}
+    check("the fixture subject is the subject we really sent, not a typed one",
+          REAL_SUBJECT.startswith("Re: "), REAL_SUBJECT)
+    earlier = "2026-09-30T06:03:31+00:00"     # replaced below by the real send time
+    earlier = log.get(WHO, earlier)        # the real send time, if we have it
+    targets = {WHO: earlier}
 
-    m = _mail(REAL_SUBJECT, ZORC, REAL_BODY, later)
+    m = _mail(REAL_SUBJECT, WHO, REAL_BODY, later)
     check("a reply to a message we really sent is recognised",
-          is_reply(m, ZORC, REAL_SUBJECT, targets) is True)
+          is_reply(m, WHO, REAL_SUBJECT, targets) is True)
     check("and the trial module refuses it - the gap, replayed",
-          trials.is_trial(m, ZORC, REAL_SUBJECT) is False)
+          trials.is_trial(m, WHO, REAL_SUBJECT) is False)
 
     check("a stranger is never answered",
           is_reply(_mail("Re: hello", "someone@elsewhere.example", "hi", later),
@@ -461,29 +486,29 @@ def fixtures():
           is_reply(_mail(REAL_SUBJECT, mine, REAL_BODY, later), mine,
                    REAL_SUBJECT, dict(targets, **{mine: earlier})) is False)
 
-    auto = _mail(REAL_SUBJECT, ZORC, "Out of office until Monday.", later)
+    auto = _mail(REAL_SUBJECT, WHO, "Out of office until Monday.", later)
     auto["Auto-Submitted"] = "auto-replied"
     check("an automatic responder is never answered",
-          is_reply(auto, ZORC, REAL_SUBJECT, targets) is False)
+          is_reply(auto, WHO, REAL_SUBJECT, targets) is False)
 
-    bounce = _mail(REAL_SUBJECT, ZORC,
+    bounce = _mail(REAL_SUBJECT, WHO,
                    "Delivery Status Notification (Failure)", later)
-    bounce["X-Failed-Recipients"] = ZORC
+    bounce["X-Failed-Recipients"] = WHO
     check("a bounce is not a reply",
-          is_reply(bounce, ZORC, REAL_SUBJECT, targets) is False)
+          is_reply(bounce, WHO, REAL_SUBJECT, targets) is False)
 
-    old = _mail(REAL_SUBJECT, ZORC, REAL_BODY, "Tue, 01 Sep 2026 00:00:00 +0000")
+    old = _mail(REAL_SUBJECT, WHO, REAL_BODY, "Tue, 01 Sep 2026 00:00:00 +0000")
     check("mail dated before our own message is not a reply to it",
-          is_reply(old, ZORC, REAL_SUBJECT, targets) is False)
+          is_reply(old, WHO, REAL_SUBJECT, targets) is False)
 
     # An undateable message from a real recipient is answered, deliberately: the
     # documented direction of wrong here is "do not silently drop a person", and
     # every other gate (bounce, auto, us, already-answered, the sent log) has
     # already held by the time the date is consulted.
-    nodate = _mail(REAL_SUBJECT, ZORC, REAL_BODY)
+    nodate = _mail(REAL_SUBJECT, WHO, REAL_BODY)
     del nodate["Date"]
     check("an undateable message from a real recipient is still answered",
-          is_reply(nodate, ZORC, REAL_SUBJECT, targets) is True)
+          is_reply(nodate, WHO, REAL_SUBJECT, targets) is True)
 
     # ...and the same undateable message from a stranger is not.
     ns = _mail(REAL_SUBJECT, "someone@elsewhere.example", REAL_BODY)
@@ -494,13 +519,13 @@ def fixtures():
     had = LOG.read_text() if LOG.exists() else None
     try:
         STATE.mkdir(parents=True, exist_ok=True)
-        LOG.write_text(json.dumps({"at": later, "to": ZORC,
+        LOG.write_text(json.dumps({"at": later, "to": WHO,
                                    "message_id": "<probe-x@example>"}) + "\n")
-        m2 = _mail(REAL_SUBJECT, ZORC, REAL_BODY, later, mid="<probe-x@example>")
+        m2 = _mail(REAL_SUBJECT, WHO, REAL_BODY, later, mid="<probe-x@example>")
         check("a reply already answered is not answered twice",
-              is_reply(m2, ZORC, REAL_SUBJECT, targets) is False)
+              is_reply(m2, WHO, REAL_SUBJECT, targets) is False)
         check("and one with no Message-ID is deduped by address",
-              _already_answered_reply("", ZORC) is True)
+              _already_answered_reply("", WHO) is True)
     finally:
         if had is None:
             LOG.unlink(missing_ok=True)
