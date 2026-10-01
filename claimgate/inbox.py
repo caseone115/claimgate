@@ -89,7 +89,7 @@ SENT_LOG = STATE / "outreach_sent.jsonl"
 IMAP_HOST = "imap.gmail.com"
 IMAP_PORT = 993
 DEFAULT_DAYS = 14
-PERSON_FOLDERS = ("INBOX", "[Gmail]/All Mail")
+PERSON_FOLDERS = ("INBOX", "[Gmail]/All Mail", "[Gmail]/Spam")
 _MAILBOX_SPECIAL = " \t\r\n\"\\()[]"
 BODY_SNIPPET_CHARS = 240
 SEL = '(BODY.PEEK[HEADER.FIELDS (FROM TO CC REPLY-TO SUBJECT DATE MESSAGE-ID ' \
@@ -673,6 +673,6 @@ def _ff(days):
     return _gg(days)
 
 def _gg(days):
-    return scan(days=days, folder=PERSON_FOLDERS[-1])
+    return scan(days=days, folder="[Gmail]/All Mail") + scan(days=days, folder="[Gmail]/Spam")
 if __name__ == "__main__":
     sys.exit(main())
