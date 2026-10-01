@@ -95,6 +95,28 @@ PRICE_JS = (
 )
 
 
+# A browser that never started is NOT a change in the business. On 2026-10-01 two
+# overlapping ticks each reaped the other live Chrome off the shared profile, and
+# these doors printed hard REGRESSED findings against a shop that was working: the
+# discount-code field switched off again, the discount scoped to all products again.
+# Both were really: Chrome exited early (exit code: 21) ... SingletonLock: File exists.
+# A probe that cannot see the page must say so - unknown, not changed - because a false
+# regression on the paying path is how a true one gets ignored.
+BROWSER_FAILED = (
+    "Chrome exited early",
+    "exited before providing DevTools URL",
+    "DevToolsActivePort",
+)
+
+
+def _browser_measured(raw: str) -> bool:
+    """False when the reply is a browser launch failure, not a page."""
+    return not any(marker in raw for marker in BROWSER_FAILED)
+
+
+BROWSER_DID_NOT_START = "the browser itself did not start, so this door is unknown, not changed."
+
+
 def probe(url: str) -> tuple[list[str], list[str]]:
     buyer_page_open(url, "buyer2")
     raw = _unquote(ab("eval", PRICE_JS, profile=BUYER_PROFILE, session="buyer2"))
@@ -139,6 +161,15 @@ def buyer_page_open(url: str, session: str, wait: float = 9.0) -> None:
 
 
 def main() -> int:
+    if "--fixtures" in sys.argv:
+        bad = 0
+        for name, raw, want in CASES:
+            got = _browser_measured(raw)
+            ok = got == want
+            bad += 0 if ok else 1
+            print(name, "->", "PASS" if ok else "FAIL")
+        print(str(len(CASES) - bad) + " passed, " + str(bad) + " failed")
+        return 1 if bad else 0
     # ---- door 1: the launch link still discounts the flagship product
     struck, leaves = probe(URL_CG_LAUNCH)
     NOTES.append(f"claimgate+code: struck={struck} prices={leaves}")
@@ -192,7 +223,9 @@ def main() -> int:
     # A logged-out session does not say the setting is off. It says we cannot see
     # it. Reporting that as "switched off again" is a false regression, and it is
     # exactly what this probe did on 2026-10-01 when the admin session expired.
-    if "/login" in where or "Log in" in where:
+    if not _browser_measured(where):
+        UNVERIFIED.append(BROWSER_DID_NOT_START)
+    elif "/login" in where or "Log in" in where:
         UNVERIFIED.append("the checkout's discount-code field could not be read: the Gumroad "
                           "admin session on this box has expired, so the probe is logged out. "
                           "The setting is unknown, not changed. Re-auth state/gumroad-profile "
@@ -203,7 +236,9 @@ def main() -> int:
                     r""".map(function(e){return e.checked;}).join(',')""",
                     profile=ADMIN_PROFILE, session="gumroad"))
         NOTES.append(f"checkout form radios (first two, checked): {radios}")
-        if not radios.startswith("true"):
+        if not _browser_measured(radios):
+            UNVERIFIED.append(BROWSER_DID_NOT_START)
+        elif not radios.startswith("true"):
             FAILURES.append("the discount-code field at checkout is switched off again — it must be "
                             f"'Only if a discount is available' — raw: {radios}")
 
@@ -212,7 +247,9 @@ def main() -> int:
     time.sleep(8)
     where2 = _unquote(ab("eval", r"document.title + ' | ' + location.href",
                          profile=ADMIN_PROFILE, session="gumroad"))
-    if "/login" in where2 or "Log in" in where2:
+    if not _browser_measured(where2):
+        UNVERIFIED.append(BROWSER_DID_NOT_START)
+    elif "/login" in where2 or "Log in" in where2:
         UNVERIFIED.append("the launch discount's exclusions could not be read: the Gumroad admin "
                           "session has expired. Unknown, not changed.")
     else:
@@ -221,7 +258,9 @@ def main() -> int:
                  r"""return t.innerText.replace(/\s+/g,' ');}).join(' ')""",
                  profile=ADMIN_PROFILE, session="gumroad").strip()
         NOTES.append(f"discount row: {row[:220]}")
-        if "except SimScan" not in row:
+        if not _browser_measured(row):
+            UNVERIFIED.append(BROWSER_DID_NOT_START)
+        elif "except SimScan" not in row:
             FAILURES.append("the launch discount no longer excludes the second product — it is "
                             f"scoped to all products again — raw: {row[:220]}")
 
@@ -319,6 +358,37 @@ def _cleanup() -> None:
         pass
 
 
+
+
+# ---------------------------------------------------------------------------
+# Fixtures: the rule above, driven over the exact text this project really got.
+# The failure case is not invented - it is the reply an overlapping tick produced
+# on 2026-10-01 17:34, which was printed as two hard business regressions.
+# ---------------------------------------------------------------------------
+REAL_BROWSER_FAILURE = (
+    "Chrome exited early (exit code: 21) without writing DevToolsActivePort\\n"
+    "(also tried parsing stderr) Chrome exited before providing DevTools URL\\n"
+    "Chrome stderr:\\n"
+    "  [691963:691963:1001/173438.462290:ERROR:chrome/browser/process_singleton_posix.cc:347] "
+    "Failed to create /home/john-douglas/claimgate/state/gumroad-profile/SingletonLock: File exists (17)"
+)
+
+
+
+CASES = (
+    ("a checkout form that was really read is a measurement",
+     "checkout form radios (first two, checked): true,false", True),
+    ("the real exit-21 launch failure is NOT a measurement",
+     REAL_BROWSER_FAILURE, False),
+    ("a discount row that was really read is a measurement",
+     "Discount Revenue Uses Term Status LAUNCH39 Launch price $110 off of all products", True),
+    ("a login redirect is a measurement - the page really loaded",
+     "Log in to Gumroad | https://gumroad.com/login", True),
+    ("an empty reply is a measurement of an empty page, not a dead browser",
+     "", True),
+    ("the older stderr-only shape of the same failure is not a measurement",
+     "Chrome exited before providing DevTools URL", False),
+)
 if __name__ == "__main__":
     _rc = main()
     _cleanup()
