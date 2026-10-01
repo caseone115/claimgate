@@ -265,8 +265,46 @@ def submissions(days=None):
         folder = "[Gmail]/All Mail"
         if conn.select(inbox._quote_mailbox(folder), readonly=True)[0] != "OK":
             raise RuntimeError("could not select " + folder)
-        typ, data = conn.search(None, "ALL")
-        for uid in (data[0] or b"").split():
+        # Ask the server for the messages FROM the addresses we wrote to, instead
+        # of fetching every message in the account and filtering here. Measured on
+        # 2026-10-01: a full scan of `ALL` fetched 282 messages and took **2m10s**,
+        # because the cost is one round trip per message and it grows with the
+        # mailbox rather than with the window this module cares about. On a tick
+        # that runs every 30 minutes that is the wrong shape. Searching by sender
+        # is also *more robust*, not less: a subject-based filter misses a reply
+        # whose subject a mail client mangled, while the sender is the one field
+        # the reply must carry if it is to be a reply at all.
+        #
+        # Our own addresses are skipped: searching the sending account returns
+        # every message we ever sent (257 of them), which is exactly the set this
+        # module must not look at. An address the server refuses to search is
+        # reported, never silently treated as an address with no mail.
+        # `SINCE` is IMAP's own date syntax (dd-Mon-yyyy); Gmail's web syntax
+        # `newer_than:60d` is rejected with `BAD Could not parse command` - tried
+        # and recorded so it is not tried again.
+        import datetime as _dt
+        since = (_dt.date.today() - _dt.timedelta(days=days)).strftime("%d-%b-%Y")
+        mine = trials._self()
+        candidates = set()
+        for addr in sorted(a for a in targets if a not in mine):
+            typ, data = conn.search(None, "SINCE", since, "FROM", '"%s"' % addr)
+            if typ != "OK" or data is None or data[0] is None:
+                raise RuntimeError("the server would not search for mail from "
+                                   + addr)
+            candidates.update((data[0] or b"").split())
+        # A second route, unioned rather than substituted. Searching by sender is
+        # the cheap and robust primary, but a reply could in principle evade it -
+        # a filter that renames the sender, a client that rewrites the address -
+        # and this detector guards the only channel that has ever produced a human
+        # contact. So the subjects of the messages we actually sent are searched as
+        # well and the two sets are pooled; the real decision is still made at fetch
+        # time by `is_reply` against the sent log, and this route can only ever add
+        # candidates to that, never bypass it.
+        for phrase in ("claim-accuracy check", "a free claim-accuracy"):
+            typ, data = conn.search(None, "SINCE", since, "SUBJECT", '"%s"' % phrase)
+            if typ == "OK" and data and data[0]:
+                candidates.update((data[0] or b"").split())
+        for uid in sorted(candidates):
             typ, parts = conn.fetch(uid, "(BODY.PEEK[])")
             raw = b"".join(p[1] for p in parts if isinstance(p, tuple))
             if not raw:
