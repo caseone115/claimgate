@@ -192,7 +192,14 @@ print("\n=== a delivery failure is loud, and a person is still a person ===\n")
 # The real bounce, header for header (state/_real_bounce_20260929.txt): the
 # first outreach message was reported quiet for 14 hours because the watcher
 # filters machine mail and never searched for a failure report. Both are now
-# pinned here.
+# pinned here - every header, and the exact prose Google writes.
+#
+# The address itself was changed to a reserved one on 2026-10-01. It was the real
+# recipient of our first message, sitting in a file this PUBLIC repository serves
+# to anyone who asks, and the subject line carries the domain in plain text. The
+# headers are what make this fixture real, not the person's address: `invalid` is
+# reserved by RFC 2606 precisely so a name like this can never belong to anyone.
+# scripts/check_public_addresses.py now fails the tick if it comes back.
 REAL = {
     "From": "Mail Delivery Subsystem <mailer-daemon@googlemail.com>",
     "Subject": "Delivery Status Notification (Failure)",
@@ -200,7 +207,7 @@ REAL = {
     "In-Reply-To": "<6abbc560.16cd2a3c.1350e8.e2e4@mx.google.com>",
     "Return-Path": "<>",
     "Auto-Submitted": "auto-replied",
-    "X-Failed-Recipients": "info@frankcaremarketing.com",
+    "X-Failed-Recipients": "bounce@example-mail.invalid",
 }
 b = msg(REAL)
 ok("the real bounce is detected", inbox.is_bounce(b, REAL["Subject"]))
@@ -208,7 +215,7 @@ ok("the real bounce is still machine mail (never counted as a person)",
    inbox._is_machine(b, "mailer-daemon@googlemail.com", BOT))
 ok("the failed address is read off the header, without a body fetch",
    inbox._failed_recipients(b, REAL["Subject"], "") ==
-   ["info@frankcaremarketing.com"])
+   ["bounce@example-mail.invalid"])
 
 # and it survives the exact header fetch the watcher performs
 FETCHED = msg(REAL)          # headers only; scan() reads headers first
@@ -228,12 +235,12 @@ PROSE = msg({"From": "Mail Delivery Subsystem <mailer-daemon@googlemail.com>",
 ok("the failed address is found in the prose when no header carries it",
    inbox._failed_recipients(
        PROSE, PROSE["Subject"],
-       "Your message wasn't delivered to info@frankcaremarketing.com because "
-       "the address couldn't be found") == ["info@frankcaremarketing.com"])
+       "Your message wasn't delivered to bounce@example-mail.invalid because "
+       "the address couldn't be found") == ["bounce@example-mail.invalid"])
 
 # nothing about a person may look like a bounce
 for hdrs, subject in (
-        ({"From": "David <david@frankcaremarketing.com>",
+        ({"From": "David <david@example-mail.invalid>",
           "Subject": "Re: your note about our AI policy",
           "In-Reply-To": "<6abbc560@mx.google.com>"}, None),
         ({"From": "Jane <jane@brightlabs.co>",
@@ -251,7 +258,7 @@ with mock.patch.object(inbox, "scan", return_value=[
         {"from": "mailer-daemon@googlemail.com", "domain": "googlemail.com",
          "subject": "Delivery Status Notification (Failure)",
          "received": "2026-09-29", "reply_to_outreach": True, "machine": True,
-         "bounce": True, "failed": ["info@frankcaremarketing.com"]}]):
+         "bounce": True, "failed": ["bounce@example-mail.invalid"]}]):
     out = []
     with mock.patch("sys.stdout") as so:
         so.write = lambda s: out.append(s)
@@ -259,7 +266,7 @@ with mock.patch.object(inbox, "scan", return_value=[
 text = "".join(out)
 ok("--bounces exits 5 when a send failed", rc == 5, f"rc={rc}")
 ok("--bounces names the address that failed",
-   "info@frankcaremarketing.com" in text, text)
+   "bounce@example-mail.invalid" in text, text)
 ok("--bounces does not say 'quiet'", "quiet" not in text, text)
 
 with mock.patch.object(inbox, "scan", return_value=[]):
@@ -274,7 +281,7 @@ with mock.patch.object(inbox, "scan", return_value=[
         {"from": "mailer-daemon@googlemail.com", "domain": "googlemail.com",
          "subject": "Delivery Status Notification (Failure)",
          "received": "2026-09-29", "reply_to_outreach": True, "machine": True,
-         "bounce": True, "failed": ["info@frankcaremarketing.com"]}]):
+         "bounce": True, "failed": ["bounce@example-mail.invalid"]}]):
     with mock.patch.object(inbox, "_load_sent_recipients", return_value=[]):
         out = []
         with mock.patch("sys.stdout") as so:
