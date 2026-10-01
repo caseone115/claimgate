@@ -79,20 +79,34 @@ QUOTE_CHARS = 90
 # Addresses that are this project's own people, who must never be answered by
 # the trial bot. The owner wrote to the trial address on 2026-09-29; the queue's
 # own standing decision is that replying to the owner as though they were a
-# prospect is worse than silence, and that decision is respected here in code
-# rather than remembered. A stranger is answered; we are not.
-SELF_ADDRESSES = (
-    "dougie115@icloud.com",     # the owner, who pressed the site's own button
-    "caseone@hotmail.co.uk",    # the owner's other address
-)
+# prospect is worse than silence, and that decision is enforced here in code.
+#
+# The list lives in `state/owner_addresses.txt`, NOT in this file: state/ is
+# gitignored and this repository is public. The first version of this shipped the
+# addresses here and `scripts/check_public_addresses.py` failed the standing tick
+# within minutes, which is exactly what that guard is for - the same leak, the
+# third time in this project, and this time the guard was already standing.
+OWNER_FILE = STATE / "owner_addresses.txt"
 
 
 def _self() -> set[str]:
-    """The addresses that are us: the sending account and the owner's."""
+    """The addresses that are us: the sending account and the owner's own.
+
+    Reads `state/owner_addresses.txt` (one address per line, `#` comments).
+    """
     out = {(outreach.load_smtp()[0] or "").strip().lower()}
-    out.update(SELF_ADDRESSES)
+    if OWNER_FILE.exists():
+        for line in OWNER_FILE.read_text().splitlines():
+            a = line.split("#", 1)[0].strip().lower()
+            if a:
+                out.add(a)
     out.discard("")
     return out
+
+
+def self_list_present() -> bool:
+    """False when there is no owner list, which means we cannot tell us from them."""
+    return OWNER_FILE.exists() and bool(OWNER_FILE.read_text().strip())
 
 
 # --- the pure rules ----------------------------------------------------------
@@ -523,12 +537,17 @@ def fixtures() -> int:
        "would reply to a robot")
     ok("no sender address is not a person to answer",
        not is_trial(mk("", "ClaimGate trial", "x"), "", "ClaimGate trial"))
-    from claimgate.trials import SELF_ADDRESSES
+    owner = sorted(a for a in _self() if a != me)
     ok("the owner's own messages are never auto-answered by the trial bot",
-       all(not is_trial(mk(a, "ClaimGate trial", "x"), a, "ClaimGate trial")
-           for a in SELF_ADDRESSES),
+       bool(owner) and all(
+           not is_trial(mk(a, "ClaimGate trial", "x"), a, "ClaimGate trial")
+           for a in owner),
        "the bot would answer the owner as if they were a prospect, which the "
        "queue's standing decision forbids")
+    ok("and the owner list is not kept in this public repository",
+       not any(a in Path(__file__).read_text() for a in owner),
+       "a real address in a public repo, which is the leak this project has "
+       "already had to remove three times")
     auto = mk("buyer@example.org", "Re: ClaimGate trial - no copy reached us",
               "I am away until Monday.")
     auto["Auto-Submitted"] = "auto-replied"
@@ -666,6 +685,14 @@ def main(argv: list[str] | None = None) -> int:
     if KILL.exists():
         print(f"refused: kill switch present at {KILL}")
         return 0
+    if not self_list_present():
+        # Without the owner list this module cannot tell the owner from a
+        # stranger, and answering the owner as if they were a prospect is the one
+        # mistake that must not be made. Refuse rather than risk it - and say so
+        # loudly, because a silent refusal is a page that promises an answer.
+        print(f"refused: no owner list at {OWNER_FILE}, so us cannot be told "
+              f"from them - create it before arming this")
+        return 1
 
     sent = 0
     for s in todo:
