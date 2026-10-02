@@ -435,8 +435,8 @@ def _seen_keys() -> set[str]:
 
 
 # --- the watcher -------------------------------------------------------------
-def scan(days: int = DEFAULT_DAYS, folder: str = "INBOX",
-         verbose: bool = False) -> list[dict]:
+def _scan_attempt(days: int = DEFAULT_DAYS, folder: str = "INBOX",
+                 verbose: bool = False) -> list[dict]:
     """Read `folder`, return every non-machine message in the last `days`.
 
     Read-only. Raises RuntimeError if the mailbox could not be read — the caller
@@ -447,23 +447,17 @@ def scan(days: int = DEFAULT_DAYS, folder: str = "INBOX",
         raise RuntimeError(f"no SMTP_USER/SMTP_PASS in {SECRETS}")
     bot = user.strip().lower()
 
-    conn = None
-    last: Exception | None = None
-    for attempt in range(3):
-        try:
-            ctx = ssl.create_default_context()
-            conn = imaplib.IMAP4_SSL(IMAP_HOST, IMAP_PORT, ssl_context=ctx,
-                                     timeout=45)
-            conn.login(user, pw)
-            break
-        except Exception as exc:                     # network / auth
-            last = exc
-            conn = None
-            if attempt < 2:
-                time.sleep(3)
-    if conn is None:
-        raise RuntimeError(f"IMAP login failed after 3 attempts: "
-                           f"{type(last).__name__}") from last
+    # ONE attempt here, deliberately. scan() owns the retry so a dropped
+    # socket is retried three times in total, not three times three: nesting
+    # the two loops made the worst case 3 x 3 x 45s on a tick that has to
+    # finish (caught by running it, 2026-10-02).
+    try:
+        ctx = ssl.create_default_context()
+        conn = imaplib.IMAP4_SSL(IMAP_HOST, IMAP_PORT, ssl_context=ctx,
+                                 timeout=45)
+        conn.login(user, pw)
+    except Exception as exc:                     # network / auth
+        raise RuntimeError(f"IMAP login failed: {type(exc).__name__}") from exc
 
     try:
         typ, _ = conn.select(_quote_mailbox(folder), readonly=True)   # readonly: no side effects
@@ -539,6 +533,22 @@ def scan(days: int = DEFAULT_DAYS, folder: str = "INBOX",
             conn.logout()
         except Exception:
             pass
+
+
+def scan(days: int = DEFAULT_DAYS, folder: str = "INBOX",
+         verbose: bool = False) -> list[dict]:
+    """Read `folder` with the WHOLE conversation retried, not only the login."""
+    last = None
+    for attempt in range(3):
+        try:
+            return _scan_attempt(days=days, folder=folder, verbose=verbose)
+        except (imaplib.IMAP4.abort, OSError, ssl.SSLError, RuntimeError) as exc:
+            last = exc
+            if attempt < 2:
+                time.sleep(3 * (attempt + 1))
+    raise RuntimeError(
+        f"mailbox not readable after 3 attempts ({type(last).__name__}: {last})"
+    ) from last
 
 
 def _line(row: dict) -> str:
@@ -724,25 +734,44 @@ def _connect():
     # one authenticated connection, read-only at every call site.
     # It returns the connection. It used to build one and return None, so the
     # one caller in person_folders() raised AttributeError on every call - and a
-    # bare `except: return ["INBOX"]` around it turned that into a folder list
+    # bare except: return ["INBOX"] around it turned that into a folder list
     # that silently never contained the folders it exists to find. The Spam
     # folder was added to PERSON_FOLDERS and could never appear in the answer.
+    #
+    # Retried WHOLE, as of 2026-10-02 (sixty-seventh tick). Measured live that
+    # night: imaplib.IMAP4_SSL itself died reading the welcome banner with
+    # "abort: socket error: EOF", and this function had no retry at all - so
+    # `trials.py --scan` and `replies.py --scan` (both of which call it) printed
+    # a traceback and the standing tick counted that as a business finding.
+    # The same connection succeeded minutes later. A dropped socket is not a fact
+    # about the mailbox, and it must not be reported as one; a genuine outage
+    # still raises, with the real cause named.
     user, pw = load_smtp()
     if not user or not pw:
         raise RuntimeError("no SMTP_USER/SMTP_PASS in %s" % SECRETS)
-    ctx = ssl.create_default_context()
-    conn = imaplib.IMAP4_SSL(IMAP_HOST, IMAP_PORT, ssl_context=ctx, timeout=45)
-    try:
-        conn.login(user, pw)
-    except Exception:
-        # never leak a half-open connection: a TLS socket left behind is how a
-        # mailbox stops being readable an hour later with nothing to show why.
+    last = None
+    for attempt in range(3):
+        ctx = ssl.create_default_context()
+        conn = None
         try:
-            conn.logout()
-        except Exception:
-            pass
-        raise
-    return conn
+            conn = imaplib.IMAP4_SSL(IMAP_HOST, IMAP_PORT, ssl_context=ctx, timeout=45)
+            conn.login(user, pw)
+            return conn
+        except Exception as exc:
+            last = exc
+            if conn is not None:
+                # never leak a half-open connection: a TLS socket left behind is
+                # how a mailbox stops being readable an hour later with nothing
+                # to show why.
+                try:
+                    conn.logout()
+                except Exception:
+                    pass
+            if attempt < 2:
+                time.sleep(3 * (attempt + 1))
+    raise RuntimeError(
+        "could not open the mailbox after 3 attempts (%s: %s)"
+        % (type(last).__name__, last)) from last
 
 def scan_all(days=DEFAULT_DAYS, folder=None):
     # every folder a person can write from, read through one interface
