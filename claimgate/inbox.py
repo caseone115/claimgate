@@ -193,6 +193,32 @@ def _domain(addr: str) -> str:
     return addr.rsplit("@", 1)[-1].lower() if "@" in addr else ""
 
 
+def _return_path_is_esp(value: str | None) -> bool:
+    """True when the bounce envelope shows a bulk sender, never a person.
+
+    A bulk mailer cannot send without a delivery-report address in Return-Path,
+    and it always writes it in one of two shapes: a local part starting
+    `bounce`/`bounces` (often with a VERP tail, `bounces+<hash>@...`), or a
+    domain carrying a `bounce` label (`cf-bounce.`, `bounces.`). Both were
+    caught live on 2026-10-02 - DEV Community's account confirmation and
+    mcpservers.org's approval - being reported as people waiting for an answer
+    on every pass, which inflates the one signal that decides whether any of
+    this is reaching anybody.
+
+    Fails open, like everything else here: a person's own mailbox never looks
+    like this, and a domain such as `bounceback.com` does not fire, because the
+    label is compared whole rather than matched as a prefix.
+    """
+    addr = _addr(value)
+    if not addr or "@" not in addr:
+        return False
+    local, _, dom = addr.partition("@")
+    if re.match(r"^bounces?([-+._].*)?$", local):
+        return True
+    return any(lab in ("bounce", "bounces")
+               for lab in re.split(r"[.\-]", dom))
+
+
 def _precedence_is_automated(value: str | None) -> bool:
     """True for the RFC 2076 auto-response Precedence keywords.
 
@@ -308,6 +334,11 @@ def _is_machine(msg, from_addr: str, bot: str) -> bool:
         return True
     # A null return-path is a bounce or a forged sender, never a human typing.
     if (msg.get("Return-Path") or "").strip() == "<>":
+        return True
+    # A bounce envelope that is an ESP's delivery address is bulk mail, not a
+    # person. Caught live 2026-10-02: two service notifications were counted as
+    # customers awaiting an answer on every pass.
+    if _return_path_is_esp(msg.get("Return-Path")):
         return True
     return False
 

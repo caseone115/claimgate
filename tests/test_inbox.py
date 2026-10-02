@@ -79,12 +79,41 @@ MACHINES = [
     {"From": "list@x.co", "Subject": "news", "Precedence": "bulk"},
     {"From": "someone@x.co", "Subject": "nope", "Return-Path": "<>"},
     {"From": BOT, "Subject": "[TEST] our own outreach"},
+    # Bulk senders' own bounce envelopes. Caught live on 2026-10-02: DEV
+    # Community's account confirmation and mcpservers.org's approval were both
+    # reported as customers waiting for an answer on every pass. The headers
+    # below are the ones those two messages really carry.
+    {"From": "DEV Community <yo@dev.to>", "Subject": "confirm your account",
+     "Return-Path": "<bounces+5606892-50c2@em4960.dev.to>"},
+    {"From": "mcpservers.org <contact@mcpservers.org>",
+     "Subject": 'Your MCP Server "ClaimGate" has been approved!',
+     "Return-Path": "<bounces@cf-bounce.mcpservers.org>"},
 ]
 for headers in MACHINES:
     m = msg(headers)
     addr = inbox._addr(m.get("From"))
     ok(f"machine: {headers.get('From')}",
        inbox._is_machine(m, addr, BOT))
+
+print("\n=== a bulk bounce envelope is a machine, but every doubt stays a person ===\n")
+
+# The rule is deliberately narrow and fails open: a person whose mail has an
+# ordinary Return-Path, and a domain that merely *begins* with the word, must
+# both remain people. Getting this wrong loses a buyer's reply.
+NOT_MACHINE = [
+    {"From": "Info <info@bounceback.example-mail.invalid>",
+     "Subject": "Re: ClaimGate"},
+    {"From": "Jane Okafor <jane@brightlabs.co>", "Subject": "Re: ClaimGate",
+     "Return-Path": "<jane@brightlabs.co>"},
+    {"From": "billing@acme.com", "Subject": "Re: ClaimGate",
+     "Return-Path": "<billing@acme.com>"},
+    # no envelope at all: the sender alone is not proof
+    {"From": "DEV Community <yo@dev.to>", "Subject": "confirm your account"},
+]
+for headers in NOT_MACHINE:
+    m = msg(headers)
+    ok(f"still human: {headers['From']}",
+       not inbox._is_machine(m, inbox._addr(m.get("From")), BOT))
 
 print("\n=== no sender at all is not actionable, and is never 'a person' to report ===\n")
 ok("empty From is machine/unactionable", inbox._is_machine(msg({}), "", BOT))
