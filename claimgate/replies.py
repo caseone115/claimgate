@@ -502,7 +502,19 @@ def fixtures():
     # ISO strings, which `email.utils.parsedate_to_datetime` returns None for - so
     # the date rules were skipped entirely and the "too old" case passed as a
     # failure. The shape matters as much as the value.
-    later = "Fri, 02 Oct 2026 09:00:00 +0000"
+    # The reply date is DERIVED from the real send time, not typed. It was typed
+    # ("Fri, 02 Oct 2026 09:00:00 +0000") and that rotted the moment this
+    # project's own sends made a recipient written to TODAY the alphabetically
+    # first row of the log. WHO is read out of the live sent log on purpose (the
+    # stronger test), so a typed "later" became a date BEFORE our own message,
+    # and the rule under test was refused by the date check it was not testing.
+    # Measured 2026-10-03, not reasoned about: after three real sends at
+    # 16:14-16:15 AEST the whole suite went red on
+    #   "a reply to a message we really sent is recognised" (16 passed, 1 failed)
+    # against a guard that answers replies correctly. A fixture that rots is how a
+    # rule gets ignored, so the date is computed from the log it already reads.
+    _sent_when = _parse(log.get(WHO, "")) or datetime(2026, 10, 2, 9, 0, tzinfo=timezone.utc)
+    later = email.utils.format_datetime(_sent_when + timedelta(hours=1))
     check("the fixture subject is the subject we really sent, not a typed one",
           REAL_SUBJECT.startswith("Re: "), REAL_SUBJECT)
     earlier = "2026-09-30T06:03:31+00:00"     # replaced below by the real send time
